@@ -1,4 +1,4 @@
-.PHONY: help venv install setup run mariadb ffmpeg clean
+.PHONY: help venv install setup run-api mariadb ffmpeg clean
 
 help:
 	@echo "Commandes disponibles:"
@@ -6,7 +6,7 @@ help:
 	@echo "  make install      - Installer les requirements"
 	@echo "  make ffmpeg       - Installer ffmpeg (nécessite sudo)"
 	@echo "  make setup        - Créer venv, installer requirements et ffmpeg"
-	@echo "  make run          - Lancer l'API"
+	@echo "  make run-api      - Lancer l'API FastAPI"
 	@echo "  make mariadb      - Installer MariaDB (nécessite sudo)"
 	@echo "  make clean        - Supprimer venv et fichiers temporaires"
 
@@ -14,15 +14,15 @@ venv:
 	python3 -m venv venv
 
 install:
-	. venv/bin/activate && pip install -r requirements.txt
+	. venv/bin/activate && python3 -m pip install -r requirements.txt
 
 ffmpeg:
 	sudo apt-get update && sudo apt-get install -y ffmpeg
 
 setup: venv install ffmpeg
 
-run:
-	. venv/bin/activate && python -m uvicorn src.api.app:app --reload
+run-api:
+	. venv/bin/activate && python3 -m uvicorn src.server.api.app:app --reload
 
 mariadb:
 	sudo python3 install_mariadb.py

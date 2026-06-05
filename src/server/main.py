@@ -23,8 +23,8 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
-from database import get_engine_from_env, get_session
-from database.crud import (
+from src.server.database import get_engine_from_env, get_session
+from src.server.database.crud import (
     create_or_update_song,
     is_song_downloaded,
     mark_song_downloaded,

@@ -10,7 +10,13 @@ DATABASE_URL_TEMPLATE = "mysql+pymysql://{user}:{password}@{host}:{port}/{db}?ch
 
 def load_env_file(env_path: str | Path = None) -> dict[str, str]:
     if env_path is None:
-        env_path = Path(__file__).resolve().parents[2] / ".env"
+        current_path = Path(__file__).resolve()
+        candidates = [
+            current_path.parents[2] / ".env",  # src/.env
+            current_path.parents[1] / ".env",  # src/server/.env
+            current_path.parents[3] / ".env",  # projet root /.env
+        ]
+        env_path = next((path for path in candidates if path.exists()), current_path.parents[2] / ".env")
     env_path = Path(env_path)
     if not env_path.exists():
         return {}

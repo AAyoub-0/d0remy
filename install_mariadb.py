@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from src.server.database import get_engine_from_env, get_session
+
 DEFAULT_DB_NAME = "ytb_music"
 DEFAULT_SQL_FILE = Path("schema.sql")
 DEFAULT_DB_USER = "ytb_user"
