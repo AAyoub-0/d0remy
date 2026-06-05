@@ -24,7 +24,13 @@ from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from database import get_engine_from_env, get_session
-from database.crud import create_or_update_song, is_song_downloaded, mark_song_downloaded
+from database.crud import (
+    create_or_update_song,
+    is_song_downloaded,
+    mark_song_downloaded,
+    create_playlist,
+    add_song_to_playlist,
+)
 
 YOUTUBE_URL_RE = re.compile(
     r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/(watch\?v=|embed/|v/)?(?P<id>[A-Za-z0-9_-]{11})"
@@ -267,6 +273,38 @@ def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
     playlist_file = playlist_metadata_path(destination, playlist_id)
     with open(playlist_file, "w", encoding="utf-8") as f:
         json.dump(playlist_info, f, indent=2, ensure_ascii=False)
+
+    # Persist playlist and playlist_songs in DB when SessionLocal provided
+    if SessionLocal is not None:
+        try:
+            with get_session(SessionLocal) as session:
+                # prepare playlist data for DB (convert total_size_mb to string to match model)
+                playlist_db = {
+                    "playlist_id": playlist_id,
+                    "title": playlist_info.get("title"),
+                    "uploader": playlist_info.get("uploader"),
+                    "uploader_id": playlist_info.get("uploader_id"),
+                    "webpage_url": playlist_info.get("webpage_url"),
+                    "description": playlist_info.get("description"),
+                    "entry_count": playlist_info.get("entry_count"),
+                    "total_size_mb": str(playlist_info.get("total_size_mb")) if playlist_info.get("total_size_mb") is not None else None,
+                }
+                # create or ignore if exists
+                try:
+                    create_playlist(session, playlist_db)
+                except Exception:
+                    # playlist may already exist, ignore
+                    pass
+
+                # add songs to playlist with positions
+                for idx, vid in enumerate(playlist_info.get("video_ids", []), start=1):
+                    try:
+                        add_song_to_playlist(session, playlist_id, vid, idx)
+                    except Exception:
+                        # ignore duplicates or db errors per-song
+                        continue
+        except Exception as exc:
+            print(f"Avertissement DB : impossible de créer la playlist en base : {exc}")
 
     print(f"✓ Préparation de la playlist terminée: {playlist_file}")
     print(f"  ID playlist: {playlist_id}")
