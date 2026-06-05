@@ -3,6 +3,25 @@ from sqlalchemy.orm import Session
 from .models import Playlist, PlaylistSong, Song
 
 
+def create_or_update_song(session: Session, song_data: dict) -> Song:
+    video_id = song_data["video_id"]
+    song = get_song(session, video_id)
+    if song is None:
+        song = Song(**song_data)
+        session.add(song)
+    else:
+        for key, value in song_data.items():
+            if key == "downloaded":
+                if value:
+                    song.downloaded = True
+                continue
+            setattr(song, key, value)
+        session.add(song)
+    session.commit()
+    session.refresh(song)
+    return song
+
+
 def create_song(session: Session, song_data: dict) -> Song:
     song = Song(**song_data)
     session.add(song)

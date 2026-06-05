@@ -23,6 +23,9 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
+from bdd.database import get_engine_from_env, get_session
+from bdd.crud import create_or_update_song, mark_song_downloaded
+
 YOUTUBE_URL_RE = re.compile(
     r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/(watch\?v=|embed/|v/)?(?P<id>[A-Za-z0-9_-]{11})"
 )
@@ -80,7 +83,7 @@ def estimate_audio_size(info: dict) -> int:
     return 0
 
 
-def save_metadata(info: dict, video_folder: str) -> str:
+def save_metadata(info: dict, video_folder: str, downloaded: bool = False, SessionLocal=None) -> str:
     os.makedirs(video_folder, exist_ok=True)
     size_bytes = estimate_audio_size(info)
     metadata = {
@@ -95,10 +98,19 @@ def save_metadata(info: dict, video_folder: str) -> str:
         "thumbnail": info.get("thumbnail"),
         "size_bytes": size_bytes,
         "size_mb": round(size_bytes / (1024 * 1024), 2) if size_bytes else None,
+        "downloaded": downloaded,
     }
     metadata_file = os.path.join(video_folder, f"{metadata['video_id']}_metadata.json")
     with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+    if SessionLocal is not None:
+        try:
+            with get_session(SessionLocal) as session:
+                create_or_update_song(session, metadata)
+        except Exception as exc:
+            print(f"Avertissement DB : impossible de créer/update le son en base : {exc}")
+
     print(f"Métadonnées sauvegardées: {metadata_file}")
     return metadata_file
 
@@ -153,7 +165,7 @@ def download_audio(url: str, video_folder: str) -> None:
         ydl.download([url])
 
 
-def download_by_id(video_id: str, destination: str) -> None:
+def download_by_id(video_id: str, destination: str, SessionLocal=None) -> None:
     """Télécharge le MP3 d'une vidéo en utilisant son ID."""
     video_folder = os.path.join(destination, video_id)
     metadata_file = os.path.join(video_folder, f"{video_id}_metadata.json")
@@ -166,10 +178,22 @@ def download_by_id(video_id: str, destination: str) -> None:
 
     if mp3_exists(video_folder):
         print(f"MP3 déjà présent dans {video_folder}. Aucun téléchargement nécessaire.")
+        if SessionLocal is not None:
+            try:
+                with get_session(SessionLocal) as session:
+                    mark_song_downloaded(session, video_id, True)
+            except Exception as exc:
+                print(f"Avertissement DB : impossible de marquer le son téléchargé : {exc}")
         return
 
     print(f"Téléchargement de: {metadata['title']}")
     download_audio(f"https://www.youtube.com/watch?v={video_id}", video_folder)
+    if SessionLocal is not None:
+        try:
+            with get_session(SessionLocal) as session:
+                mark_song_downloaded(session, video_id, True)
+        except Exception as exc:
+            print(f"Avertissement DB : impossible de marquer le son téléchargé : {exc}")
     print(f"✓ Téléchargement terminé dans: {video_folder}")
 
 
@@ -181,7 +205,7 @@ def playlist_metadata_path(destination: str, playlist_id: str) -> str:
     return os.path.join(get_playlist_root(destination), playlist_id, "playlist_metadata.json")
 
 
-def prepare_playlist(url: str, destination: str) -> str:
+def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
     info = extract_info(url, download=False)
     playlist_id = get_playlist_id(url)
     if not playlist_id:
@@ -211,7 +235,7 @@ def prepare_playlist(url: str, destination: str) -> str:
         if not video_id:
             continue
         video_folder = os.path.join(destination, video_id)
-        save_metadata(entry, video_folder)
+        save_metadata(entry, video_folder, downloaded=False, SessionLocal=SessionLocal)
 
         size_bytes = estimate_audio_size(entry)
         total_size_bytes += size_bytes
@@ -244,7 +268,7 @@ def prepare_playlist(url: str, destination: str) -> str:
     return playlist_id
 
 
-def download_playlist(playlist_id: str, destination: str) -> None:
+def download_playlist(playlist_id: str, destination: str, SessionLocal=None) -> None:
     playlist_file = playlist_metadata_path(destination, playlist_id)
     if not os.path.exists(playlist_file):
         raise FileNotFoundError(f"Pas de préparation de playlist trouvée pour l'ID: {playlist_id}")
@@ -258,7 +282,7 @@ def download_playlist(playlist_id: str, destination: str) -> None:
         if not video_id:
             continue
         try:
-            download_by_id(video_id, destination)
+            download_by_id(video_id, destination, SessionLocal=SessionLocal)
         except Exception as exc:
             print(f"Erreur lors du téléchargement de {video_id}: {exc}")
 
@@ -287,6 +311,15 @@ def download_with_cli(url: str, destination: str) -> None:
     subprocess.run(command, check=True)
 
 
+def init_db_session():
+    try:
+        _, SessionLocal = get_engine_from_env()
+        return SessionLocal
+    except Exception as exc:
+        print(f"Avertissement DB : connexion impossible ({exc}), la base ne sera pas utilisée.")
+        return None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prépare un téléchargement YouTube en MP3.")
     parser.add_argument("url", nargs="?", help="URL de la vidéo ou de la playlist YouTube")
@@ -312,10 +345,11 @@ def main() -> int:
 
     ensure_download_folder(args.dest)
     ensure_download_folder(get_playlist_root(args.dest))
+    session_local = init_db_session()
 
     if args.download_playlist:
         try:
-            download_playlist(args.download_playlist, args.dest)
+            download_playlist(args.download_playlist, args.dest, SessionLocal=session_local)
             return 0
         except FileNotFoundError as exc:
             print(f"Erreur: {exc}")
@@ -326,7 +360,7 @@ def main() -> int:
 
     if args.download:
         try:
-            download_by_id(args.download, args.dest)
+            download_by_id(args.download, args.dest, SessionLocal=session_local)
             return 0
         except FileNotFoundError as exc:
             print(f"Erreur: {exc}")
@@ -349,7 +383,7 @@ def main() -> int:
             print("Utilisez `-c` pour préparer la playlist, puis `--download-playlist <playlist_id>`.")
             return 1
         try:
-            prepare_playlist(url, args.dest)
+            prepare_playlist(url, args.dest, SessionLocal=session_local)
             return 0
         except Exception as exc:
             print(f"Erreur lors de la préparation de la playlist: {exc}")
@@ -364,7 +398,7 @@ def main() -> int:
         print(f"Erreur lors de la récupération des métadonnées: {exc}")
         return 1
 
-    save_metadata(info, video_folder)
+    save_metadata(info, video_folder, downloaded=False, SessionLocal=session_local)
 
     if args.prepare:
         print("Mode préparation activé : le MP3 ne sera pas téléchargé maintenant.")
@@ -372,16 +406,28 @@ def main() -> int:
 
     if mp3_exists(video_folder):
         print(f"MP3 déjà présent dans {video_folder}. Aucun téléchargement nécessaire.")
+        if session_local is not None:
+            try:
+                with get_session(session_local) as session:
+                    mark_song_downloaded(session, video_id, True)
+            except Exception as exc:
+                print(f"Avertissement DB : impossible de marquer le son téléchargé : {exc}")
         return 0
 
     print(f"Téléchargement de {url} vers {video_folder}...")
     try:
         download_audio(url, video_folder)
+        if session_local is not None:
+            with get_session(session_local) as session:
+                mark_song_downloaded(session, video_id, True)
     except RuntimeError as exc:
         print(f"Erreur: {exc}")
         print("Tentative avec la commande `yt-dlp` si disponible...")
         try:
             download_with_cli(url, video_folder)
+            if session_local is not None:
+                with get_session(session_local) as session:
+                    mark_song_downloaded(session, video_id, True)
         except Exception as cli_exc:
             print(f"Échec du téléchargement: {cli_exc}")
             return 1
