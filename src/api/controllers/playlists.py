@@ -11,15 +11,15 @@ from ..schemas import (
     PlaylistSongRead,
     PlaylistUpdate,
 )
-from ...bdd.repositories.playlist_repository import (
+from ...database.repositories.playlist_repository import (
     add_song_to_playlist,
     create_playlist,
     get_playlist,
     get_playlist_songs,
     list_playlists,
 )
-from ...bdd.repositories.song_repository import get_song
-from ...bdd.entities.models import PlaylistSong
+from ...database.repositories.song_repository import get_song
+from ...database.entities.models import PlaylistSong
 
 router = APIRouter(prefix="/playlists", tags=["playlists"])
 

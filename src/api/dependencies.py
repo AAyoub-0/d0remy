@@ -3,7 +3,7 @@ from typing import Generator
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from ..bdd.database import get_engine_from_env, get_session
+from ..database import get_engine_from_env, get_session
 
 try:
     engine, SessionLocal = get_engine_from_env()

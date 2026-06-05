@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..dependencies import get_db
 from ..schemas import SongCreate, SongRead, SongUpdate
-from ...bdd.repositories.song_repository import (
+from ...database.repositories.song_repository import (
     create_or_update_song,
     get_song,
     list_songs,

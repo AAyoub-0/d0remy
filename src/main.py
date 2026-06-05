@@ -23,8 +23,8 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
-from bdd.database import get_engine_from_env, get_session
-from bdd.crud import create_or_update_song, is_song_downloaded, mark_song_downloaded
+from database import get_engine_from_env, get_session
+from database.crud import create_or_update_song, is_song_downloaded, mark_song_downloaded
 
 YOUTUBE_URL_RE = re.compile(
     r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/(watch\?v=|embed/|v/)?(?P<id>[A-Za-z0-9_-]{11})"

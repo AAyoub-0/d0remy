@@ -1,5 +1,5 @@
 from .database import get_engine
-from .models import Base
+from .entities.models import Base
 
 
 def create_tables(user: str, password: str, host: str = "127.0.0.1", port: int = 3306, db: str = "ytb_music"):
