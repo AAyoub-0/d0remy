@@ -17,7 +17,9 @@ install:
 	. venv/bin/activate && python3 -m pip install -r requirements.txt
 
 ffmpeg:
-	sudo apt-get update && sudo apt-get install -y ffmpeg
+	@command -v ffmpeg >/dev/null 2>&1 && \
+		echo "ffmpeg déjà installé" || \
+		(sudo apt-get update && sudo apt-get install -y ffmpeg)
 
 setup: venv install ffmpeg
 
