@@ -1,5 +1,5 @@
 from .database import build_database_url, create_engine_and_session, get_engine, get_session
-from .models import Base, Song, Playlist, PlaylistSong
+from .entities.models import Base, Song, Playlist, PlaylistSong
 from .crud import (
     create_song,
     get_song,

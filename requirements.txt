@@ -1,3 +1,5 @@
 yt-dlp
 SQLAlchemy>=2.0
 PyMySQL
+fastapi
+uvicorn[standard]
