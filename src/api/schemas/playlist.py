@@ -11,7 +11,7 @@ class PlaylistBase(BaseModel):
     webpage_url: Optional[str] = None
     description: Optional[str] = None
     entry_count: Optional[int] = None
-    total_size_mb: Optional[str] = None
+    total_size_mb: Optional[float] = None
 
 
 class PlaylistCreate(PlaylistBase):
@@ -25,7 +25,7 @@ class PlaylistUpdate(BaseModel):
     webpage_url: Optional[str] = None
     description: Optional[str] = None
     entry_count: Optional[int] = None
-    total_size_mb: Optional[str] = None
+    total_size_mb: Optional[float] = None
 
 
 class PlaylistRead(PlaylistBase):

@@ -14,7 +14,7 @@ class SongBase(BaseModel):
     url: Optional[str] = None
     thumbnail: Optional[str] = None
     size_bytes: Optional[int] = None
-    size_mb: Optional[str] = None
+    size_mb: Optional[float] = None
     downloaded: Optional[bool] = False
 
 
@@ -32,7 +32,7 @@ class SongUpdate(BaseModel):
     url: Optional[str] = None
     thumbnail: Optional[str] = None
     size_bytes: Optional[int] = None
-    size_mb: Optional[str] = None
+    size_mb: Optional[float] = None
     downloaded: Optional[bool] = None
 
 
