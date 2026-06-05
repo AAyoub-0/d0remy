@@ -1,0 +1,6 @@
+downloads/
+playlists/
+.venv/
+
+__pycache__/
+*.py[cod]
