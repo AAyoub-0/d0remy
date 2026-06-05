@@ -24,7 +24,7 @@ from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from bdd.database import get_engine_from_env, get_session
-from bdd.crud import create_or_update_song, mark_song_downloaded
+from bdd.crud import create_or_update_song, is_song_downloaded, mark_song_downloaded
 
 YOUTUBE_URL_RE = re.compile(
     r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/(watch\?v=|embed/|v/)?(?P<id>[A-Za-z0-9_-]{11})"
@@ -176,7 +176,18 @@ def download_by_id(video_id: str, destination: str, SessionLocal=None) -> None:
     with open(metadata_file, "r", encoding="utf-8") as f:
         metadata = json.load(f)
 
-    if mp3_exists(video_folder):
+    db_checked = False
+    if SessionLocal is not None:
+        try:
+            with get_session(SessionLocal) as session:
+                db_checked = True
+                if is_song_downloaded(session, video_id):
+                    print(f"MP3 déjà marqué téléchargé en base pour {video_id}. Aucun téléchargement nécessaire.")
+                    return
+        except Exception as exc:
+            print(f"Avertissement DB : impossible de vérifier le statut de téléchargement : {exc}")
+
+    if not db_checked and mp3_exists(video_folder):
         print(f"MP3 déjà présent dans {video_folder}. Aucun téléchargement nécessaire.")
         if SessionLocal is not None:
             try:

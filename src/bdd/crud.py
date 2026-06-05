@@ -3,6 +3,15 @@ from sqlalchemy.orm import Session
 from .models import Playlist, PlaylistSong, Song
 
 
+def get_song(session: Session, video_id: str) -> Song | None:
+    return session.get(Song, video_id)
+
+
+def is_song_downloaded(session: Session, video_id: str) -> bool:
+    song = get_song(session, video_id)
+    return bool(song and song.downloaded)
+
+
 def create_or_update_song(session: Session, song_data: dict) -> Song:
     video_id = song_data["video_id"]
     song = get_song(session, video_id)
@@ -28,10 +37,6 @@ def create_song(session: Session, song_data: dict) -> Song:
     session.commit()
     session.refresh(song)
     return song
-
-
-def get_song(session: Session, video_id: str) -> Song | None:
-    return session.get(Song, video_id)
 
 
 def list_songs(session: Session, limit: int = 100) -> list[Song]:
