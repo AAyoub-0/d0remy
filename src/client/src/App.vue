@@ -1,117 +1,97 @@
 <template>
-  <main>
-    <h1>YT Music Client</h1>
-
-    <section>
-      <button @click="loadSongs" :disabled="loadingSongs">Charger les chansons</button>
-      <div v-if="songs.length">
-        <h2>Chansons</h2>
-        <ul>
-          <li v-for="song in songs" :key="song.video_id">
-            {{ song.title }} — {{ song.artist || song.uploader }}
-          </li>
-        </ul>
+  <div id="app">
+    <header class="navbar">
+      <div class="navbar-left">
+        <button class="menu-btn" @click="toggleMenu" aria-label="Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <span class="brand">🎵 AnBeats</span>
       </div>
-    </section>
 
-    <section>
-      <button @click="loadPlaylists" :disabled="loadingPlaylists">Charger les playlists</button>
-      <div v-if="playlists.length">
-        <h2>Playlists</h2>
-        <ul>
-          <li v-for="playlist in playlists" :key="playlist.playlist_id">
-            <button @click="selectPlaylist(playlist.playlist_id)">
-              {{ playlist.title || playlist.playlist_id }}
-            </button>
-          </li>
-        </ul>
+      <div class="navbar-center">
+        <div class="search-box" :class="{ expanded: searchOpen }" @click="onSearchClick">
+          <i class="fas fa-search" aria-hidden="true"></i>
+          <input 
+            ref="searchInput"
+            type="text" 
+            placeholder="Que souhaitez-vous écouter ou regarder ?"
+            @input="handleSearch"
+          />
+        </div>
       </div>
-    </section>
 
-    <section v-if="selectedPlaylistId">
-      <h2>Chansons de la playlist {{ selectedPlaylistId }}</h2>
-      <button @click="loadPlaylistSongs(selectedPlaylistId)" :disabled="loadingPlaylistSongs">
-        Charger les chansons de playlist
-      </button>
-      <ul v-if="playlistSongs.length">
-        <li v-for="song in playlistSongs" :key="`${song.playlist_id}-${song.video_id}`">
-          {{ song.video_id }} – position {{ song.position }}
-        </li>
-      </ul>
-    </section>
+      <div class="navbar-right">
+        <div class="nav-links">
+          <a href="#" class="nav-link">Assistance</a>
+          <a href="#" class="nav-link">Télécharger</a>
+        </div>
+       <div class="divider"></div>
+       <div class="nav-log-btn">
+          <!-- <button class="btn-secondary">Installer l'appli</button> -->
+          <button id="signup-btn" class="btn-secondary">S'inscrire</button>
+          <button class="btn-primary">Se connecter</button>
+       </div>
+      </div>
+    </header>
 
-    <div v-if="error" class="error">Erreur : {{ error }}</div>
-  </main>
+    <div class="main-container">
+      <aside v-if="menuOpen" class="sidebar">
+        <nav class="sidebar-nav">
+          <RouterLink to="/" @click="menuOpen = false">🏠 Accueil</RouterLink>
+          <RouterLink to="/songs" @click="menuOpen = false">🎵 Chansons</RouterLink>
+          <RouterLink to="/playlists" @click="menuOpen = false">📋 Playlists</RouterLink>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <RouterView />
+      </main>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { fetchSongs, fetchPlaylists, fetchPlaylistSongs } from './api'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { RouterView, RouterLink } from 'vue-router'
+import './styles/app.css'
 
-const songs = ref([])
-const playlists = ref([])
-const playlistSongs = ref([])
-const selectedPlaylistId = ref(null)
-const loadingSongs = ref(false)
-const loadingPlaylists = ref(false)
-const loadingPlaylistSongs = ref(false)
-const error = ref(null)
+const menuOpen = ref(false)
+const searchQuery = ref('')
+const searchOpen = ref(false)
+const searchInput = ref(null)
 
-async function loadSongs() {
-  error.value = null
-  loadingSongs.value = true
-  try {
-    songs.value = await fetchSongs()
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    loadingSongs.value = false
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value
+}
+
+function handleSearch(e) {
+  searchQuery.value = e.target.value
+  // À intégrer avec la logique de recherche plus tard
+}
+
+function onSearchClick(e) {
+  if (e.target && e.target.tagName === 'INPUT') return
+  if (window.innerWidth > 768) return
+  searchOpen.value = !searchOpen.value
+  if (searchOpen.value) {
+    nextTick(() => {
+      if (searchInput.value) searchInput.value.focus()
+    })
   }
 }
 
-async function loadPlaylists() {
-  error.value = null
-  loadingPlaylists.value = true
-  try {
-    playlists.value = await fetchPlaylists()
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    loadingPlaylists.value = false
+function handleClickOutside(e) {
+  const searchBox = document.querySelector('.search-box')
+  if (searchOpen.value && searchBox && !searchBox.contains(e.target)) {
+    searchOpen.value = false
   }
 }
 
-function selectPlaylist(playlistId) {
-  selectedPlaylistId.value = playlistId
-  playlistSongs.value = []
-}
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
 
-async function loadPlaylistSongs(playlistId) {
-  error.value = null
-  loadingPlaylistSongs.value = true
-  try {
-    playlistSongs.value = await fetchPlaylistSongs(playlistId)
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    loadingPlaylistSongs.value = false
-  }
-}
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
-
-<style>
-main {
-  max-width: 800px;
-  margin: 2rem auto;
-  font-family: Arial, sans-serif;
-  padding: 0 1rem;
-}
-button {
-  margin: 0.5rem 0;
-  padding: 0.5rem 1rem;
-}
-.error {
-  margin-top: 1rem;
-  color: #a00;
-}
-</style>
