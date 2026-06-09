@@ -56,6 +56,63 @@
         <RouterView />
       </main>
     </div>
+
+    <!-- MUSIC PLAYER -->
+    <footer class="music-player">
+      <div class="player-track">
+        <div class="player-cover">
+          <img src="https://via.placeholder.com/60x60?text=Album" alt="Album cover" />
+        </div>
+        <div class="player-info">
+          <div class="player-title">No Song Selected</div>
+          <div class="player-artist">Artist</div>
+        </div>
+      </div>
+
+      <div class="player-controls">
+        <div class="controls">
+          <button class="control-btn" title="Shuffle">
+            <i class="fas fa-random"></i>
+          </button>
+          <button class="control-btn" title="Previous">
+            <i class="fas fa-step-backward"></i>
+          </button>
+          <button class="control-btn play-btn" @click="togglePlay" title="Play/Pause">
+            <i :class="isPlaying ? 'fas fa-pause' : 'fas fa-play'"></i>
+          </button>
+          <button class="control-btn" title="Next">
+            <i class="fas fa-step-forward"></i>
+          </button>
+          <button class="control-btn" title="Repeat">
+            <i class="fas fa-redo"></i>
+          </button>
+        </div>
+        <div class="progress-container">
+          <span class="time">0:00</span>
+          <input 
+            type="range" 
+            class="progress-bar" 
+            min="0" 
+            max="100" 
+            value="0"
+            @input="onProgressChange"
+          />
+          <span class="duration">0:00</span>
+        </div>
+      </div>
+
+      <div class="player-volume">
+        <i class="fas fa-volume-down"></i>
+        <input 
+          type="range" 
+          class="volume-slider" 
+          min="0" 
+          max="100" 
+          value="80"
+        />
+        <i class="fas fa-volume-up"></i>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -70,6 +127,7 @@ const sidebarExpanded = ref(breakpoint.value === 'desktop')
 const searchQuery = ref('')
 const searchOpen = ref(false)
 const searchInput = ref(null)
+const isPlaying = ref(false)
 
 const isDesktop = computed(() => breakpoint.value === 'desktop')
 const isTablet = computed(() => breakpoint.value === 'tablet')
@@ -123,6 +181,14 @@ function handleResize() {
     breakpoint.value = nextBreakpoint
     sidebarExpanded.value = nextBreakpoint === 'desktop'
   }
+}
+
+function togglePlay() {
+  isPlaying.value = !isPlaying.value
+}
+
+function onProgressChange(e) {
+  // Handle progress bar change
 }
 
 onMounted(() => {
