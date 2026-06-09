@@ -5,7 +5,7 @@
         <button class="menu-btn" @click="toggleMenu" aria-label="Menu">
           <i class="fas fa-bars"></i>
         </button>
-        <span class="brand">🎵 AnBeats</span>
+        <span class="brand">🎵 Musart</span>
       </div>
 
       <div class="navbar-center">
@@ -61,11 +61,11 @@
     <footer class="music-player">
       <div class="player-track">
         <div class="player-cover">
-          <img src="https://via.placeholder.com/60x60?text=Album" alt="Album cover" />
+          <img :src="currentTrack?.thumbnail || 'https://via.placeholder.com/60x60?text=Album'" alt="Album cover" />
         </div>
         <div class="player-info">
-          <div class="player-title">No Song Selected</div>
-          <div class="player-artist">Artist</div>
+          <div class="player-title">{{ currentTrack?.title || 'No Song Selected' }}</div>
+          <div class="player-artist">{{ currentTrack?.artist || currentTrack?.uploader || 'Artist' }}</div>
         </div>
       </div>
 
@@ -88,16 +88,16 @@
           </button>
         </div>
         <div class="progress-container">
-          <span class="time">0:00</span>
+          <span class="time">{{ currentTimeText }}</span>
           <input 
             type="range" 
             class="progress-bar" 
             min="0" 
-            max="100" 
-            value="0"
+            :max="duration || 0" 
+            :value="currentTime"
             @input="onProgressChange"
           />
-          <span class="duration">0:00</span>
+          <span class="duration">{{ durationText }}</span>
         </div>
       </div>
 
@@ -109,15 +109,23 @@
           min="0" 
           max="100" 
           value="80"
+          @input="onVolumeChange"
         />
         <i class="fas fa-volume-up"></i>
       </div>
+      <audio
+        ref="audioRef"
+        :src="audioSrc"
+        @timeupdate="onTimeUpdate"
+        @loadedmetadata="onLoadedMetadata"
+        @ended="onEnded"
+      />
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, provide, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { RouterView, RouterLink } from 'vue-router'
 import './styles/app.css'
 
@@ -128,6 +136,10 @@ const searchQuery = ref('')
 const searchOpen = ref(false)
 const searchInput = ref(null)
 const isPlaying = ref(false)
+const currentTrack = ref(null)
+const currentTime = ref(0)
+const duration = ref(0)
+const audioRef = ref(null)
 
 const isDesktop = computed(() => breakpoint.value === 'desktop')
 const isTablet = computed(() => breakpoint.value === 'tablet')
@@ -135,11 +147,58 @@ const isMobile = computed(() => breakpoint.value === 'mobile')
 
 const sidebarVisible = computed(() => !isMobile.value || sidebarExpanded.value)
 const sidebarCollapsed = computed(() => (isDesktop.value || isTablet.value) && !sidebarExpanded.value)
+const audioSrc = computed(() => {
+  if (!currentTrack.value) return ''
+  if (currentTrack.value.downloaded) {
+    return `/media/${currentTrack.value.video_id}`
+  }
+  return currentTrack.value.url || ''
+})
 
 function getBreakpoint(width) {
   if (width > 1024) return 'desktop'
   if (width > 768) return 'tablet'
   return 'mobile'
+}
+
+function setCurrentTrack(track) {
+  currentTrack.value = track
+  isPlaying.value = true
+}
+
+provide('setCurrentTrack', setCurrentTrack)
+
+watch(currentTrack, async () => {
+  if (!audioRef.value) return
+  audioRef.value.load()
+  if (audioSrc.value) {
+    try {
+      await audioRef.value.play()
+      isPlaying.value = true
+    } catch {
+      isPlaying.value = false
+    }
+  } else {
+    isPlaying.value = false
+  }
+})
+
+watch(isPlaying, () => {
+  if (!audioRef.value) return
+  if (isPlaying.value) {
+    audioRef.value.play().catch(() => {
+      isPlaying.value = false
+    })
+  } else {
+    audioRef.value.pause()
+  }
+})
+
+// Handle volume
+function onVolumeChange(e) {
+  if (!audioRef.value) return
+  const volume = Number(e.target.value) / 100
+  audioRef.value.volume = volume
 }
 
 function toggleMenu() {
@@ -184,11 +243,39 @@ function handleResize() {
 }
 
 function togglePlay() {
+  if (!currentTrack.value) return
   isPlaying.value = !isPlaying.value
 }
 
 function onProgressChange(e) {
-  // Handle progress bar change
+  if (!audioRef.value) return
+  const nextTime = Number(e.target.value)
+  audioRef.value.currentTime = nextTime
+  currentTime.value = nextTime
+}
+
+function onTimeUpdate() {
+  if (!audioRef.value) return
+  currentTime.value = audioRef.value.currentTime
+}
+
+function onLoadedMetadata() {
+  if (!audioRef.value) return
+  duration.value = audioRef.value.duration || 0
+}
+
+function onEnded() {
+  isPlaying.value = false
+}
+
+const currentTimeText = computed(() => formatTime(currentTime.value))
+const durationText = computed(() => formatTime(duration.value))
+
+function formatTime(seconds) {
+  const floored = Math.floor(seconds || 0)
+  const mins = Math.floor(floored / 60)
+  const secs = floored % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
 onMounted(() => {

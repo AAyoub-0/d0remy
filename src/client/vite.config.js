@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/songs': 'http://127.0.0.1:8000',
-      '/playlists': 'http://127.0.0.1:8000'
+      '/playlists': 'http://127.0.0.1:8000',
+      '/media': 'http://127.0.0.1:8000'
     }
   }
 })

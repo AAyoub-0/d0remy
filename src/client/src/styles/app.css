@@ -46,7 +46,7 @@ html, body, #app {
 /* ========== NAVBAR ========== */
 .navbar {
   background: transparent;
-  padding: 0.75rem 1.5rem;
+  padding: 0.35rem 1.1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -211,7 +211,6 @@ html, body, #app {
   flex: 1;
   overflow: hidden;
   margin-inline: 0.55rem;
-  margin-bottom: 0.55rem;
 }
 
 .sidebar {
@@ -374,7 +373,7 @@ li:hover {
 /* ========== MUSIC PLAYER ========== */
 .music-player {
   padding-inline: 1rem;
-  padding-block: 0.35rem;
+  padding-block: 0.55rem;
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   gap: 1.5rem;
@@ -385,6 +384,8 @@ li:hover {
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .player-cover {
@@ -405,6 +406,8 @@ li:hover {
 .player-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .player-title {
