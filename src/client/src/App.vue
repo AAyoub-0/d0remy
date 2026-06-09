@@ -35,11 +35,20 @@
     </header>
 
     <div class="main-container">
-      <aside v-if="menuOpen" class="sidebar">
+      <aside v-show="sidebarVisible" class="sidebar" :class="{ collapsed: sidebarCollapsed }">
         <nav class="sidebar-nav">
-          <RouterLink to="/" @click="menuOpen = false">🏠 Accueil</RouterLink>
-          <RouterLink to="/songs" @click="menuOpen = false">🎵 Chansons</RouterLink>
-          <RouterLink to="/playlists" @click="menuOpen = false">📋 Playlists</RouterLink>
+          <RouterLink to="/" @click="closeSidebarOnMobile" class="sidebar-link">
+            <span class="icon"><i class="fas fa-home"></i></span>
+            <span class="label">Accueil</span>
+          </RouterLink>
+          <RouterLink to="/songs" @click="closeSidebarOnMobile" class="sidebar-link">
+            <span class="icon"><i class="fas fa-music"></i></span>
+            <span class="label">Chansons</span>
+          </RouterLink>
+          <RouterLink to="/playlists" @click="closeSidebarOnMobile" class="sidebar-link">
+            <span class="icon"><i class="fas fa-list"></i></span>
+            <span class="label">Playlists</span>
+          </RouterLink>
         </nav>
       </aside>
 
@@ -51,27 +60,47 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { RouterView, RouterLink } from 'vue-router'
 import './styles/app.css'
 
-const menuOpen = ref(false)
+const windowWidth = ref(window.innerWidth)
+const breakpoint = ref(getBreakpoint(window.innerWidth))
+const sidebarExpanded = ref(breakpoint.value === 'desktop')
 const searchQuery = ref('')
 const searchOpen = ref(false)
 const searchInput = ref(null)
 
+const isDesktop = computed(() => breakpoint.value === 'desktop')
+const isTablet = computed(() => breakpoint.value === 'tablet')
+const isMobile = computed(() => breakpoint.value === 'mobile')
+
+const sidebarVisible = computed(() => !isMobile.value || sidebarExpanded.value)
+const sidebarCollapsed = computed(() => (isDesktop.value || isTablet.value) && !sidebarExpanded.value)
+
+function getBreakpoint(width) {
+  if (width > 1024) return 'desktop'
+  if (width > 768) return 'tablet'
+  return 'mobile'
+}
+
 function toggleMenu() {
-  menuOpen.value = !menuOpen.value
+  sidebarExpanded.value = !sidebarExpanded.value
+}
+
+function closeSidebarOnMobile() {
+  if (isMobile.value) {
+    sidebarExpanded.value = false
+  }
 }
 
 function handleSearch(e) {
   searchQuery.value = e.target.value
-  // À intégrer avec la logique de recherche plus tard
 }
 
 function onSearchClick(e) {
   if (e.target && e.target.tagName === 'INPUT') return
-  if (window.innerWidth > 768) return
+  if (!isMobile.value) return
   searchOpen.value = !searchOpen.value
   if (searchOpen.value) {
     nextTick(() => {
@@ -87,11 +116,22 @@ function handleClickOutside(e) {
   }
 }
 
+function handleResize() {
+  windowWidth.value = window.innerWidth
+  const nextBreakpoint = getBreakpoint(window.innerWidth)
+  if (nextBreakpoint !== breakpoint.value) {
+    breakpoint.value = nextBreakpoint
+    sidebarExpanded.value = nextBreakpoint === 'desktop'
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
