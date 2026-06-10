@@ -16,6 +16,10 @@ async function request(path, options = {}) {
   return response.json()
 }
 
+export async function fetchSong(id) {
+  return request(`/songs/${id}`)
+}
+
 export async function fetchSongs() {
   return request('/songs')
 }
