@@ -21,6 +21,7 @@ const props = defineProps({
 
 <style scoped>
 .song-card {
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -56,10 +57,16 @@ const props = defineProps({
   color: var(--primary-text);
   font-size: 0.875rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .song-info .song-artist {
   color: var(--secondary-text);
   font-size: 0.775rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

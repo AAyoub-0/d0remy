@@ -19,3 +19,8 @@
   --violet-primary: #8a2be2;
   --violet-secondary: #7a1be2;
 }
+
+::selection {
+  background: var(--violet-primary);
+  color: var(--accent);
+}

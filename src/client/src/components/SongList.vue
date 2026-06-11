@@ -5,10 +5,12 @@
       <ul>
         <li v-for="song in songs" :key="song.video_id" @click="playSong(song)">
           <div class="song-item">
-            <p class="song-nb">
+            <div class="song-item-left">
               <i class="fa-solid fa-play song-card-play-icon"></i>
-              <span class="song-number">{{ songs.indexOf(song) + 1 }}</span>
-            </p>
+              <p class="song-nb">
+                {{ songs.indexOf(song) + 1 }}
+              </p>
+            </div>
             <SongCard :song="song" />
           </div>
         </li>
@@ -55,12 +57,13 @@ li:hover {
 }
 
 .song-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 5px;
   border-radius: 0.25rem;
   cursor: pointer;
-  padding-block: 5px;
+  padding: 5px;
 }
 
   .song-item:hover {
@@ -68,13 +71,18 @@ li:hover {
     cursor: default;
   }
 
+.song-item-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 10px;
+}
+
 .song-nb {
-  position: relative;
   font-size: 0.875rem;
   color: var(--secondary-text);
-  width: 30px;
+  width: fit-content;
   text-align: center;
-  margin-right: 10px;
 }
 
 .song-card-play-icon {
@@ -85,7 +93,7 @@ li:hover {
   transform: all 0.2s ease;
 }
 
-.song-item:hover .song-number {
+.song-item:hover .song-nb {
   opacity: 0;
 }
 
