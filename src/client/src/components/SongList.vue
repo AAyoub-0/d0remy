@@ -148,7 +148,10 @@ li:hover {
 }
 
 .song-item-right {
-  width: 140px;
+  overflow: hidden;
+  min-width: 0px;
+  max-width: 100%;
+  width: 150px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -157,6 +160,13 @@ li:hover {
   gap: 2rem;
   font-size: 0.675rem;
   color: var(--secondary-text);
+  flex-shrink: 0;
 }
 
+.song-item-right .song-uploaded-date {
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>
