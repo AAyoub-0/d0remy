@@ -1,7 +1,6 @@
 <template>
   <section>
     <div v-if="songs.length">
-      <h2>Chansons</h2>
       <ul>
         <li v-for="song in songs" :key="song.video_id" @click="playSong(song)">
           <div class="song-item">
@@ -12,6 +11,13 @@
               </p>
             </div>
             <SongCard :song="song" />
+            <div class="song-item-right">
+              <span class="song-uploaded-date">{{ formatDateFr(song.metadata_created_at) }}</span>
+              <span class="song-duration">{{ formatDuration(song.duration) }}</span>
+            </div>
+            <span class="song-more-options">
+                <i class="fa-solid fa-ellipsis"></i>
+            </span>
           </div>
         </li>
       </ul>
@@ -32,6 +38,31 @@ const setCurrentTrack = inject('setCurrentTrack', () => {})
 
 function playSong(song) {
   setCurrentTrack(song)
+}
+
+function formatDuration(seconds) {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = String(seconds % 60).padStart(2, '0')
+
+  return `${minutes}:${remainingSeconds}`
+}
+
+function formatDate(uploadDate) {
+  const str = String(uploadDate)
+
+  return `${str.slice(6, 8)}/${str.slice(4, 6)}/${str.slice(0, 4)}`
+}
+
+function formatDateFr(dateString) {
+  const date = new Date(dateString)
+
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  })
+  .format(date)
+  .replace('.', '') // enlève le point final parfois ajouté
 }
 </script>
 
@@ -61,8 +92,8 @@ li:hover {
   display: flex;
   align-items: center;
   gap: 5px;
-  border-radius: 0.25rem;
   cursor: pointer;
+  border-radius: 0.25rem;
   padding: 5px;
 }
 
@@ -74,7 +105,6 @@ li:hover {
 .song-item-left {
   display: flex;
   align-items: center;
-  justify-content: center;
   padding-inline: 10px;
 }
 
@@ -100,4 +130,33 @@ li:hover {
 .song-item:hover .song-card-play-icon {
   opacity: 1;
 }
+
+.song-more-options {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-size: 0.775rem;
+  color: var(--secondary-text);
+  margin-right: 10px;
+}
+  .song-more-options:hover {
+    color: var(--primary-text);
+    cursor: pointer;
+  }
+
+.song-item:hover .song-more-options {
+  opacity: 1;
+}
+
+.song-item-right {
+  width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-left: auto;
+  padding-inline: 10px;
+  gap: 2rem;
+  font-size: 0.675rem;
+  color: var(--secondary-text);
+}
+
 </style>
