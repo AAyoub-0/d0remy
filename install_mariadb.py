@@ -45,7 +45,7 @@ def create_database_user(privilege_prefix, db_name: str, user: str, password: st
     sql = (
         f"CREATE DATABASE IF NOT EXISTS `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
         f"CREATE USER IF NOT EXISTS '{user}'@'localhost' IDENTIFIED BY '{password}';"
-        f"GRANT SELECT, INSERT, UPDATE, DELETE ON `{db_name}`.* TO '{user}'@'localhost';"
+        f"GRANT SELECT, INSERT, UPDATE, DELETE, DROP ON `{db_name}`.* TO '{user}'@'localhost';"
         f"FLUSH PRIVILEGES;"
     )
     run_command(privilege_prefix + ["mysql", "-e", sql])
