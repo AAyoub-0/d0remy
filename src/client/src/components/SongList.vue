@@ -10,7 +10,7 @@
                 {{ songs.indexOf(song) + 1 }}
               </p>
             </div>
-            <SongCard :song="song" />
+            <SongCard class="song-item-center" :song="song" />
             <div class="song-item-right">
               <span class="song-uploaded-date">{{ formatDateFr(song.metadata_created_at) }}</span>
               <span class="song-duration">{{ formatDuration(song.duration) }}</span>
@@ -147,20 +147,24 @@ li:hover {
   opacity: 1;
 }
 
+.song-item-center {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .song-item-right {
   overflow: hidden;
   min-width: 0px;
   max-width: 100%;
-  /* width: 100%; */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-left: auto;
   padding-inline: 10px;
-  gap: 2rem;
   font-size: clamp(0.675rem, 2vw, 0.875rem);
   color: var(--secondary-text);
   flex-shrink: 0;
+  flex-basis: 20%;
 }
 
 .song-item-right .song-uploaded-date {

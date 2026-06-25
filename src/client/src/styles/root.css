@@ -18,6 +18,8 @@
   --accent-hover: #f0f0f0;
   --violet-primary: #8a2be2;
   --violet-secondary: #7a1be2;
+
+  --font-size-nav-links: 0.9rem;
 }
 
 ::selection {

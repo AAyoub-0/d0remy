@@ -25,166 +25,10 @@ html, body, #app {
   min-height: 100vh;
 }
 
-/* ========== NAVBAR ========== */
-.navbar {
-  background: transparent;
-  padding: 0.55rem 1.1rem;
-  display: flex;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  height: 7vh;
-  z-index: 1000;
-}
-
-.navbar-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 0 0 auto;
-}
-
-.menu-btn {
-  background: none;
-  border: none;
-  color: var(--primary-text);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  transition: color 0.2s ease;
-}
-
-.menu-btn:hover {
-  color: var(--primary-text) !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-radius: 50% !important;
-}
-
-.brand {
-  font-weight: 700;
-  font-size: 1.35rem;
-  color: var(--primary-text);
-}
-
-.navbar-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  background: var(--tertiary-bg);
-  border: 1px solid var(--secondary-bg);
-  border-radius: 2rem;
-  padding: 0.5rem 1rem;
-  gap: 0.75rem;
-  width: 100%;
-  max-width: 350px;
-  transition: all 0.2s ease;
-}
-
-.search-box:hover {
-  border-color: var(--accent);
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.search-box:focus-within {
-  border-width: 0.15rem;
-  border-color: var(--accent);
-  box-shadow: 0 0 8px rgba(29, 185, 84, 0.2);
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.search-box i {
-  color: var(--secondary-text);
-  font-size: clamp(1.1rem, 2vw, 1.5rem);
-}
-
-.search-box input {
-  background: none;
-  border: none;
-  color: var(--primary-text);
-  flex: 1;
-  outline: none;
-  font-size: clamp(0.9rem, 2vw, 1.2rem);
-}
-
-.search-box input::placeholder {
-  color: var(--secondary-text);
-}
-
-.navbar-right {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex: 0 0 auto;
-}
-
 .divider {
   width: 1px;
   height: 24px;
   background: var(--tertiary-bg);
-}
-
-.nav-links {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.nav-link {
-  color: var(--navbar-links-text);
-  text-decoration: none;
-  font-size: clamp(0.9rem, 2vw, 1.2rem);
-  transition: color 0.2s ease;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-  color: var(--accent-hover);
-  transform: scale(1.05);
-}
-
-.nav-log-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.btn-secondary {
-  background: none;
-  border: none;
-  color: var(--navbar-links-text);
-  padding: 0.35rem 1.1rem;
-  border-radius: 2rem;
-  font-size: clamp(0.9rem, 2vw, 1.2rem);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-  color: var(--accent-hover);
-}
-
-.btn-primary {
-  background: var(--accent);
-  border: none;
-  color: #000;
-  padding: 0.5rem 1.5rem;
-  border-radius: 2rem;
-  font-size: clamp(0.9rem, 2vw, 1.2rem);
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-primary:hover {
-  background: var(--accent-hover);
-  transform: scale(1.05);
 }
 
 /* ========== LAYOUT PRINCIPAL ========== */
@@ -273,7 +117,7 @@ html, body, #app {
   flex: 1;
   overflow-y: auto;
   background: var(--primary-bg);
-  padding: 2rem;
+  /* padding: 2rem; */
 }
 
 main {
@@ -360,7 +204,7 @@ button:disabled {
 .player-title {
   font-weight: 700;
   color: var(--primary-text);
-  font-size: clamp(0.85rem, 2vw, 1.1rem);
+  font-size: clamp(0.85rem, 25%, 1.1rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -368,7 +212,7 @@ button:disabled {
 
 .player-artist {
   color: var(--secondary-text);
-  font-size: clamp(0.9rem, 2vw, 1.2rem);
+  font-size: clamp(0.9rem, 25%, 1.2rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -433,7 +277,7 @@ button:disabled {
 
 .time,
 .duration {
-  font-size: clamp(0.8rem, 2vw, 1rem);
+  font-size: 0.8rem;
   color: var(--secondary-text);
   min-width: 40px;
 }
@@ -448,7 +292,7 @@ button:disabled {
   background: none;
   border: none;
   color: var(--secondary-text);
-  font-size: clamp(0.8rem, 2vw, 1rem);
+  font-size: clamp(0.8rem, 1.3vw, 1rem);
   cursor: pointer;
   transition: color 0.2s ease;
   padding: 0.5rem;
@@ -483,7 +327,7 @@ button:disabled {
 
 .player-volume i {
   color: var(--secondary-text);
-  font-size: clamp(0.75rem, 2vw, 1rem);
+  font-size: clamp(0.75rem, 1.3vw, 1rem);
   min-width: 16px;
 }
 

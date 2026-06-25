@@ -128,6 +128,7 @@
 import { ref, computed, provide, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { RouterView, RouterLink } from 'vue-router'
 import './styles/app.css'
+import './styles/header.css'
 
 const windowWidth = ref(window.innerWidth)
 const breakpoint = ref(getBreakpoint(window.innerWidth))
