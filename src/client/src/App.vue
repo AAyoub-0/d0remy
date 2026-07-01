@@ -64,8 +64,18 @@
           <img :src="currentTrack?.thumbnail || 'https://via.placeholder.com/60x60?text=Album'" alt="Album cover" />
         </div>
         <div class="player-info">
-          <div class="player-title">{{ currentTrack?.title || 'No Song Selected' }}</div>
-          <div class="player-artist">{{ currentTrack?.artist || currentTrack?.uploader || 'Artist' }}</div>
+          <div class="player-title" ref="playerTitleContainer">
+            <span ref="playerTitle"
+                  :style="{ '--titleOverflow': `${titleOverflow}px` }">
+              {{ currentTrack?.title || 'No Song Selected' }}
+            </span>
+          </div>
+          <div class="player-artist" ref="playerArtistContainer">
+            <span ref="playerArtist"
+                  :style="{ '--artistOverflow': `${artistOverflow}px` }">
+              {{ currentTrack?.artist || currentTrack?.uploader || 'Artist' }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -129,6 +139,14 @@ import { ref, computed, provide, nextTick, watch, onMounted, onUnmounted } from 
 import { RouterView, RouterLink } from 'vue-router'
 import './styles/app.css'
 import './styles/header.css'
+
+// css for the scrolling title
+const playerTitle = ref(null)
+const playerTitleContainer = ref(null)
+const playerArtist = ref(null)
+const playerArtistContainer = ref(null)
+const titleOverflow = ref(0)
+const artistOverflow = ref(0)
 
 const windowWidth = ref(window.innerWidth)
 const breakpoint = ref(getBreakpoint(window.innerWidth))
@@ -194,6 +212,23 @@ watch(isPlaying, () => {
     audioRef.value.pause()
   }
 })
+
+watch(() => currentTrack.value?.title, async () => {
+    await nextTick()
+
+    if (!playerTitle.value || !playerTitleContainer.value) return
+
+    titleOverflow.value = Math.max(
+      0,
+      playerTitle.value.scrollWidth - playerTitleContainer.value.clientWidth
+    )
+    artistOverflow.value = Math.max(
+      0,
+      playerArtist.value.scrollWidth - playerArtistContainer.value.clientWidth
+    )
+  },
+  { immediate: true }
+)
 
 // Handle volume
 function onVolumeChange(e) {

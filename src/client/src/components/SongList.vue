@@ -109,15 +109,16 @@ li:hover {
 }
 
 .song-nb {
-  font-size: clamp(0.875rem, 2vw, 1.1rem);
+  font-size: 0.875rem;
   color: var(--secondary-text);
-  width: fit-content;
+  width: 2ch;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .song-card-play-icon {
   opacity: 0;
-  font-size: clamp(0.875rem, 2vw, 1.1rem);
+  font-size: 0.875rem;
   color: var(--primary-text);
   position: absolute;
   transform: all 0.2s ease;
@@ -134,7 +135,7 @@ li:hover {
 .song-more-options {
   opacity: 0;
   transition: opacity 0.2s ease;
-  font-size: clamp(0.775rem, 2vw, 1rem);
+  font-size: 0.875rem;
   color: var(--secondary-text);
   margin-right: 10px;
 }
@@ -161,7 +162,7 @@ li:hover {
   align-items: center;
   justify-content: space-between;
   padding-inline: 10px;
-  font-size: clamp(0.675rem, 2vw, 0.875rem);
+  font-size: 0.875rem;
   color: var(--secondary-text);
   flex-shrink: 0;
   flex-basis: 20%;
