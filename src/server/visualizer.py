@@ -81,6 +81,19 @@ def _get_duration_seconds(mp3_path: Path) -> Optional[float]:
         return None
 
 
+def _resolve_bar_count(duration_seconds: Optional[float], requested_bar_count: Optional[int]) -> int:
+    """Déterminer le nombre de barres à générer à partir de la durée du son."""
+    if requested_bar_count is not None:
+        if requested_bar_count <= 0:
+            raise ValueError("bar_count doit être supérieur à 0")
+        return requested_bar_count
+
+    if duration_seconds is None or duration_seconds <= 0:
+        return 32
+
+    return max(1, int(math.ceil(duration_seconds * 2)))
+
+
 def _compute_bars(samples: List[int], bar_count: int) -> List[float]:
     """Créer des barres d'intensité à partir des échantillons audio."""
     if bar_count <= 0:
@@ -136,22 +149,19 @@ def _compute_frequency_levels(samples: List[int], sample_rate: int, frequencies:
 
 def build_visualizer_data(
     mp3_path: str | Path,
-    bar_count: int = 32,
+    bar_count: Optional[int] = None,
     frequencies: Optional[List[int]] = None,
 ) -> Dict[str, object]:
     """Créer un objet de visualisation audio à partir d'un fichier MP3.
 
     Args:
         mp3_path: chemin du fichier MP3.
-        bar_count: nombre de barres à générer.
+        bar_count: nombre de barres à générer. Si absent, une barre est générée par seconde.
         frequencies: liste de fréquences cibles à analyser.
 
     Returns:
         Un dictionnaire prêt à être sérialisé en JSON.
     """
-    if bar_count <= 0:
-        raise ValueError("bar_count doit être supérieur à 0")
-
     audio_path = Path(mp3_path)
     if not audio_path.exists():
         raise FileNotFoundError(f"Le fichier audio est introuvable : {audio_path}")
@@ -160,11 +170,12 @@ def build_visualizer_data(
 
     samples, sample_rate = _decode_pcm_samples(audio_path)
     duration = _get_duration_seconds(audio_path)
+    resolved_bar_count = _resolve_bar_count(duration, bar_count)
 
     if frequencies is None:
         frequencies = [60, 170, 330, 1000, 2000, 4000]
 
-    bars = _compute_bars(samples, bar_count)
+    bars = _compute_bars(samples, resolved_bar_count)
     peak = max(abs(sample) / 32768.0 for sample in samples)
     rms = math.sqrt(sum((sample / 32768.0) ** 2 for sample in samples) / len(samples))
     energy = sum(abs(sample) / 32768.0 for sample in samples) / len(samples)
@@ -185,7 +196,7 @@ def build_visualizer_data(
 
 def build_visualizer_json(
     mp3_path: str | Path,
-    bar_count: int = 32,
+    bar_count: Optional[int] = None,
     frequencies: Optional[List[int]] = None,
 ) -> str:
     """Retourne une version JSON sérialisée de l'objet visualizer_data."""
@@ -199,7 +210,7 @@ def build_visualizer_json(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Génère un objet de visualisation audio à partir d'un fichier MP3")
     parser.add_argument("mp3_path", help="Chemin du fichier MP3 à analyser")
-    parser.add_argument("--bar-count", type=int, default=32, help="Nombre de barres à générer")
+    parser.add_argument("--bar-count", type=int, default=None, help="Nombre de barres à générer (par défaut : une barre par seconde)")
     args = parser.parse_args()
 
     try:

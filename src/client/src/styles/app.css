@@ -116,7 +116,7 @@ html, body, #app {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  background: var(--primary-bg);
+  /* background: var(--primary-bg); */
   /* padding: 2rem; */
 }
 
