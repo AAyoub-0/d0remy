@@ -16,6 +16,7 @@ class SongBase(BaseModel):
     size_bytes: Optional[int] = None
     size_mb: Optional[float] = None
     downloaded: Optional[bool] = False
+    visualizer_data: Optional[dict] = None
 
 
 class SongCreate(SongBase):
@@ -34,6 +35,7 @@ class SongUpdate(BaseModel):
     size_bytes: Optional[int] = None
     size_mb: Optional[float] = None
     downloaded: Optional[bool] = None
+    visualizer_data: Optional[dict] = None
 
 
 class SongRead(SongBase):

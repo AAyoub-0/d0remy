@@ -2,4 +2,5 @@ yt-dlp
 SQLAlchemy>=2.0
 PyMySQL
 fastapi
+pydantic>=2.0
 uvicorn[standard]
