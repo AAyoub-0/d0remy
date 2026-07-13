@@ -4,6 +4,7 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     Integer,
+    JSON,
     String,
     Text,
     TIMESTAMP,
@@ -29,6 +30,7 @@ class Song(Base):
     size_bytes = Column(BigInteger)
     size_mb = Column(String(64))
     downloaded = Column(Boolean, nullable=False, default=False)
+    visualizer_data = Column(JSON, nullable=True, default=dict)
     metadata_created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
     playlists = relationship("PlaylistSong", back_populates="song")

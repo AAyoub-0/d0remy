@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `songs` (
   `size_bytes` BIGINT,
   `size_mb` DECIMAL(12,2),
   `downloaded` TINYINT(1) NOT NULL DEFAULT 0,
+  `visualizer_data` JSON DEFAULT NULL,
   `metadata_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`video_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

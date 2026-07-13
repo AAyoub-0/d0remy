@@ -24,6 +24,8 @@ def create_or_update_song(session: Session, song_data: dict) -> Song:
                 if value:
                     song.downloaded = True
                 continue
+            if key == "visualizer_data" and value is None:
+                continue
             setattr(song, key, value)
         session.add(song)
     session.commit()
