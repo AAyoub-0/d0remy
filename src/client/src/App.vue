@@ -185,7 +185,21 @@ function setCurrentTrack(track) {
   isPlaying.value = true
 }
 
+function seekTo(time) {
+  if (!audioRef.value) return
+
+  const targetDuration = Number(duration.value || currentTrack.value?.duration || 0)
+  const safeTime = Math.max(0, Math.min(targetDuration, Number(time) || 0))
+
+  audioRef.value.currentTime = safeTime
+  currentTime.value = safeTime
+}
+
+provide('currentTrack', currentTrack)
+provide('currentTime', currentTime)
+provide('currentDuration', duration)
 provide('setCurrentTrack', setCurrentTrack)
+provide('seekTo', seekTo)
 
 watch(currentTrack, async () => {
   if (!audioRef.value) return
