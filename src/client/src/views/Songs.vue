@@ -118,7 +118,7 @@ function getGradientFromPalette(palette) {
     return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 75%)`
   }
 
-  return `linear-gradient(135deg, ${colors[1]} 0%, ${colors[0]} 100%)`
+  return `linear-gradient(135deg, ${colors[3]} 0%, ${colors[0]} 100%)`
 }
 
 async function refreshVisualizerBackground(song) {

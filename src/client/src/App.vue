@@ -106,6 +106,7 @@
             :max="duration || 0" 
             :value="currentTime"
             @input="onProgressChange"
+            :style="progressStyle"
           />
           <span class="duration">{{ durationText }}</span>
         </div>
@@ -118,8 +119,9 @@
           class="volume-slider" 
           min="0" 
           max="100" 
-          value="80"
+          :value="volume"
           @input="onVolumeChange"
+          :style="volumeStyle"
         />
         <i class="fas fa-volume-up"></i>
       </div>
@@ -159,6 +161,7 @@ const currentTrack = ref(null)
 const currentTime = ref(0)
 const duration = ref(0)
 const audioRef = ref(null)
+const volume = ref(80)
 
 const isDesktop = computed(() => breakpoint.value === 'desktop')
 const isTablet = computed(() => breakpoint.value === 'tablet')
@@ -247,8 +250,9 @@ watch(() => currentTrack.value?.title, async () => {
 // Handle volume
 function onVolumeChange(e) {
   if (!audioRef.value) return
-  const volume = Number(e.target.value) / 100
-  audioRef.value.volume = volume
+  const next = Number(e.target.value)
+  volume.value = Math.max(0, Math.min(100, Number.isFinite(next) ? next : 0))
+  audioRef.value.volume = volume.value / 100
 }
 
 function toggleMenu() {
@@ -321,6 +325,25 @@ function onEnded() {
 const currentTimeText = computed(() => formatTime(currentTime.value))
 const durationText = computed(() => formatTime(duration.value))
 
+const progressPercent = computed(() => {
+  const d = Number(duration.value || 0)
+  const t = Number(currentTime.value || 0)
+  if (!d || d <= 0) return 0
+  return Math.min(100, Math.max(0, (t / d) * 100))
+})
+
+const progressStyle = computed(() => {
+  return {
+    background: `linear-gradient(90deg, var(--violet-primary) ${progressPercent.value}%, var(--tertiary-bg) ${progressPercent.value}%)`
+  }
+})
+
+const volumePercent = computed(() => Math.min(100, Math.max(0, Number(volume.value || 0))))
+
+const volumeStyle = computed(() => ({
+  background: `linear-gradient(90deg, var(--violet-primary) ${volumePercent.value}%, var(--tertiary-bg) ${volumePercent.value}%)`
+}))
+
 function formatTime(seconds) {
   const floored = Math.floor(seconds || 0)
   const mins = Math.floor(floored / 60)
@@ -331,6 +354,9 @@ function formatTime(seconds) {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   window.addEventListener('resize', handleResize)
+  if (audioRef.value) {
+    audioRef.value.volume = Math.max(0, Math.min(1, Number(volume.value || 80) / 100))
+  }
 })
 
 onUnmounted(() => {
