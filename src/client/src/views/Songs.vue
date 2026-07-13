@@ -2,7 +2,7 @@
   <div class="songs-view">
 
     <div class="songs-view-header">
-      <div class="visualizer-card" v-if="visualizerBars.length">
+      <div class="visualizer-card" :style="visualizerCardStyle" v-if="visualizerBars.length">
         <div class="visualizer-label">
           <span>Visualiseur</span>
           <span v-if="activeVisualizerSong" class="visualizer-song">{{ activeVisualizerSong.title }}</span>
@@ -60,6 +60,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import { fetchSongs } from '../api'
 import SongList from '../components/SongList.vue'
+import { Vibrant } from 'node-vibrant/browser'
 
 const songs = ref([])
 const loadingSongs = ref(false)
@@ -71,7 +72,74 @@ const seekTo = inject('seekTo', null)
 const visualizerContainer = ref(null)
 const visualizerCanvas = ref(null)
 const visualizerWidth = ref(0)
+const visualizerBackgroundStyle = ref('')
 let resizeObserver = null
+
+function colorToRgb(cssColor) {
+  if (Array.isArray(cssColor)) {
+    return `rgb(${cssColor[0]}, ${cssColor[1]}, ${cssColor[2]})`
+  }
+  return String(cssColor).trim()
+}
+
+function getGradientFromPalette(palette) {
+  if (!palette) {
+    return ''
+  }
+
+  const swatches = [
+    palette.Vibrant,
+    palette.DarkVibrant,
+    palette.Muted,
+    palette.LightVibrant,
+    palette.DarkMuted,
+  ].filter(Boolean)
+
+  if (!swatches.length) {
+    return ''
+  }
+
+  const colors = swatches.map(swatch => colorToRgb(swatch.rgb))
+
+  if (colors.length === 1) {
+    return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[0]} 100%)`
+  }
+
+  if (colors.length === 2) {
+    return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 75%)`
+  }
+
+  return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`
+}
+
+async function refreshVisualizerBackground(song) {
+  visualizerBackgroundStyle.value = ''
+  console.log('Refreshing visualizer background for song:', song)
+  if (!song?.thumbnail) {
+    console.log('No thumbnail available for song:', song)
+    return
+  }
+
+  try {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.src = song.thumbnail
+
+    console.log('Loading thumbnail image for visualizer background:', song.thumbnail)
+    await new Promise((resolve, reject) => {
+      image.onload = resolve
+      image.onerror = reject
+    })
+
+    const palette = await Vibrant.from(image).getPalette()
+    const gradient = getGradientFromPalette(palette)
+    console.log('Generated gradient:', gradient)
+    visualizerBackgroundStyle.value = gradient || ''
+  } catch (err) {
+    console.error('Error generating visualizer background:', err)
+    visualizerBackgroundStyle.value = ''
+  }
+}
 
 const search = ref('')
 const sortBy = ref('title')
@@ -181,6 +249,9 @@ function handleVisualizerClick(event) {
 
 const currentTimeText = computed(() => formatTime(currentTimeRef?.value || 0))
 const durationText = computed(() => formatTime(currentDurationRef?.value || currentTrack?.value?.duration || 0))
+const visualizerCardStyle = computed(() => ({
+  background: visualizerBackgroundStyle.value || 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03))',
+}))
 
 function drawVisualizer() {
   const canvas = visualizerCanvas.value
@@ -263,6 +334,11 @@ const activeVisualizerSong = computed(() => {
 
   return null
 })
+
+watch(activeVisualizerSong, (song) => {
+  console.log('Active visualizer song changed:', song)
+  refreshVisualizerBackground(song)
+}, { immediate: true })
 
 const visualizerBars = computed(() => {
   const chosenSong = activeVisualizerSong.value
@@ -362,10 +438,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.songs-view {
-  background-color: var(--primary-bg);
-}
-
 .songs-view-header {
   border-radius: 0.75rem;
   position: sticky;
@@ -378,7 +450,6 @@ onUnmounted(() => {
   z-index: 20;
   margin: 0 0 0.75rem 0;
   padding: 0.9rem 1rem;
-  border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
