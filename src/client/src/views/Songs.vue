@@ -3,15 +3,24 @@
 
     <div class="songs-view-header">
       <div class="visualizer-card" :style="visualizerCardStyle" v-if="visualizerBars.length">
-        <div class="visualizer-label">
-          <span>Visualiseur</span>
-          <span v-if="activeVisualizerSong" class="visualizer-song">{{ activeVisualizerSong.title }}</span>
-       </div>
 
-        <div ref="visualizerContainer" class="visualizer-shell">
-          <canvas ref="visualizerCanvas" class="visualizer-bars" @click="handleVisualizerClick"></canvas>
-          <div class="visualizer-timer visualizer-timer-left">{{ currentTimeText }}</div>
-          <div class="visualizer-timer visualizer-timer-right">{{ durationText }}</div>
+        <div class="visualizer-left">
+          <div class="visualizer-thumbnail" v-if="activeVisualizerSong?.thumbnail">
+            <img :src="activeVisualizerSong.thumbnail" alt="Album cover" />
+          </div>
+        </div>
+
+        <div class="visualizer-right">
+          <div class="visualizer-label">
+            <span v-if="activeVisualizerSong" class="visualizer-song">{{ activeVisualizerSong.title }}</span>
+            <span v-if="activeVisualizerSong" class="visualizer-artist">{{ activeVisualizerSong.artist }}</span>
+          </div>
+
+          <div ref="visualizerContainer" class="visualizer-shell">
+            <canvas ref="visualizerCanvas" class="visualizer-bars" @click="handleVisualizerClick"></canvas>
+            <div class="visualizer-timer visualizer-timer-left">{{ currentTimeText }}</div>
+            <div class="visualizer-timer visualizer-timer-right">{{ durationText }}</div>
+          </div>
         </div>
       </div>
 
@@ -109,12 +118,11 @@ function getGradientFromPalette(palette) {
     return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 75%)`
   }
 
-  return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`
+  return `linear-gradient(135deg, ${colors[1]} 0%, ${colors[0]} 100%)`
 }
 
 async function refreshVisualizerBackground(song) {
   visualizerBackgroundStyle.value = ''
-  console.log('Refreshing visualizer background for song:', song)
   if (!song?.thumbnail) {
     console.log('No thumbnail available for song:', song)
     return
@@ -125,7 +133,6 @@ async function refreshVisualizerBackground(song) {
     image.crossOrigin = 'anonymous'
     image.src = song.thumbnail
 
-    console.log('Loading thumbnail image for visualizer background:', song.thumbnail)
     await new Promise((resolve, reject) => {
       image.onload = resolve
       image.onerror = reject
@@ -133,7 +140,6 @@ async function refreshVisualizerBackground(song) {
 
     const palette = await Vibrant.from(image).getPalette()
     const gradient = getGradientFromPalette(palette)
-    console.log('Generated gradient:', gradient)
     visualizerBackgroundStyle.value = gradient || ''
   } catch (err) {
     console.error('Error generating visualizer background:', err)
@@ -335,8 +341,7 @@ const activeVisualizerSong = computed(() => {
   return null
 })
 
-watch(activeVisualizerSong, (song) => {
-  console.log('Active visualizer song changed:', song)
+watch(currentTrack, (song) => {
   refreshVisualizerBackground(song)
 }, { immediate: true })
 
@@ -447,37 +452,75 @@ onUnmounted(() => {
 }
 
 .visualizer-card {
+  display: flex;
   z-index: 20;
-  margin: 0 0 0.75rem 0;
-  padding: 0.9rem 1rem;
+  /* padding: 0.9rem 1rem; */
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+.visualizer-left {
+  padding: 0.9rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  /* background: rgba(255, 255, 255, 0.1); */
+}
+
+.visualizer-thumbnail {
+  width: 300px;
+  height: 300px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+  .visualizer-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+.visualizer-right {
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex: 1;
+}
+
 .visualizer-label {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.7rem;
+  flex-direction: column;
   color: var(--primary-text);
-  font-size: 0.9rem;
-  font-weight: 600;
 }
 
 .visualizer-song {
+  width: fit-content;
+  padding: 0.2rem 0.5rem;
+  background-color: #000;
+  color: var(--primary-text);
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.visualizer-artist {
+  width: fit-content;
+  padding: 0.2rem 0.5rem;
+  background-color: #000;
   color: var(--secondary-text);
-  font-size: 0.8rem;
-  font-weight: 400;
+  font-size: 1.25rem;
+  font-weight: 500;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-  margin-left: 0.75rem;
 }
 
 .visualizer-shell {
   position: relative;
-  width: 70%;
+  width: 100%;
   height: 88px;
   overflow: hidden;
   padding-bottom: 0.2rem;
