@@ -31,6 +31,7 @@ from src.server.database.crud import (
     create_playlist,
     add_song_to_playlist,
 )
+from src.server.visualizer import build_visualizer_data as build_audio_visualizer_data
 
 YOUTUBE_URL_RE = re.compile(
     r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/(watch\?v=|embed/|v/)?(?P<id>[A-Za-z0-9_-]{11})"
@@ -69,6 +70,43 @@ def get_playlist_id(url: str) -> Optional[str]:
     return None
 
 
+def build_empty_visualizer_data() -> dict:
+    return {
+        "bars": [],
+        "bar_count": 32,
+        "energy": None,
+        "peak": None,
+        "rms": None,
+        "frequencies": [],
+    }
+
+
+def update_visualizer_data_for_download(video_folder: str, metadata: dict, SessionLocal=None) -> None:
+    mp3_files = sorted(Path(video_folder).glob("*.mp3"))
+    if not mp3_files:
+        raise FileNotFoundError(f"Aucun fichier MP3 trouvé dans {video_folder}.")
+
+    mp3_path = mp3_files[0]
+    try:
+        visualizer_data = build_audio_visualizer_data(mp3_path)
+    except Exception as exc:
+        raise RuntimeError(f"Impossible de créer visualizer_data : {exc}") from exc
+
+    metadata["visualizer_data"] = visualizer_data
+    metadata_file = os.path.join(video_folder, f"{metadata['video_id']}_metadata.json")
+    with open(metadata_file, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+    if SessionLocal is not None:
+        try:
+            with get_session(SessionLocal) as session:
+                create_or_update_song(session, metadata)
+        except Exception as exc:
+            print(f"Avertissement DB : impossible de mettre à jour visualizer_data en base : {exc}")
+
+    print(f"Visualiseur sauvegardé pour: {metadata['video_id']}")
+
+
 def estimate_audio_size(info: dict) -> int:
     if info.get("filesize"):
         return int(info["filesize"])
@@ -105,6 +143,7 @@ def save_metadata(info: dict, video_folder: str, downloaded: bool = False, Sessi
         "size_bytes": size_bytes,
         "size_mb": round(size_bytes / (1024 * 1024), 2) if size_bytes else None,
         "downloaded": downloaded,
+        "visualizer_data": build_empty_visualizer_data(),
     }
     metadata_file = os.path.join(video_folder, f"{metadata['video_id']}_metadata.json")
     with open(metadata_file, "w", encoding="utf-8") as f:
@@ -205,6 +244,10 @@ def download_by_id(video_id: str, destination: str, SessionLocal=None) -> None:
 
     print(f"Téléchargement de: {metadata['title']}")
     download_audio(f"https://www.youtube.com/watch?v={video_id}", video_folder)
+    try:
+        update_visualizer_data_for_download(video_folder, metadata, SessionLocal=SessionLocal)
+    except Exception as exc:
+        print(f"Avertissement : impossible de générer visualizer_data : {exc}")
     if SessionLocal is not None:
         try:
             with get_session(SessionLocal) as session:
@@ -447,7 +490,9 @@ def main() -> int:
         print(f"Erreur lors de la récupération des métadonnées: {exc}")
         return 1
 
-    save_metadata(info, video_folder, downloaded=False, SessionLocal=session_local)
+    metadata_file = save_metadata(info, video_folder, downloaded=False, SessionLocal=session_local)
+    with open(metadata_file, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
 
     if args.prepare:
         print("Mode préparation activé : le MP3 ne sera pas téléchargé maintenant.")
@@ -466,6 +511,10 @@ def main() -> int:
     print(f"Téléchargement de {url} vers {video_folder}...")
     try:
         download_audio(url, video_folder)
+        try:
+            update_visualizer_data_for_download(video_folder, metadata=metadata, SessionLocal=session_local)
+        except Exception as exc:
+            print(f"Avertissement : impossible de générer visualizer_data : {exc}")
         if session_local is not None:
             with get_session(session_local) as session:
                 mark_song_downloaded(session, video_id, True)
@@ -474,6 +523,10 @@ def main() -> int:
         print("Tentative avec la commande `yt-dlp` si disponible...")
         try:
             download_with_cli(url, video_folder)
+            try:
+                update_visualizer_data_for_download(video_folder, metadata=metadata, SessionLocal=session_local)
+            except Exception as exc:
+                print(f"Avertissement : impossible de générer visualizer_data : {exc}")
             if session_local is not None:
                 with get_session(session_local) as session:
                     mark_song_downloaded(session, video_id, True)
