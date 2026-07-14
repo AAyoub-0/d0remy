@@ -454,14 +454,13 @@ onUnmounted(() => {
 .visualizer-card {
   display: flex;
   z-index: 20;
-  /* padding: 0.9rem 1rem; */
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .visualizer-left {
-  padding: 0.9rem 1rem;
+  padding: 1.2rem 1.3rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -483,7 +482,7 @@ onUnmounted(() => {
   }
 
 .visualizer-right {
-  padding: 0.9rem 1rem;
+  padding: 1.2rem 1.3rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -526,6 +525,12 @@ onUnmounted(() => {
   padding-bottom: 0.2rem;
   background: transparent;
 }
+  .visualizer-shell canvas {
+    opacity: 0.9;
+  }
+  .visualizer-shell:hover canvas {
+    opacity: 1;
+  }
 
 .visualizer-bars {
   display: block;

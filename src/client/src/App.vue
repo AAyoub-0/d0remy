@@ -106,6 +106,8 @@
             :max="duration || 0" 
             :value="currentTime"
             @input="onProgressChange"
+            @mousemove="onProgressHover"
+            @mouseleave="clearProgressHover"
             :style="progressStyle"
           />
           <span class="duration">{{ durationText }}</span>
@@ -121,6 +123,8 @@
           max="100" 
           :value="volume"
           @input="onVolumeChange"
+          @mousemove="onVolumeHover"
+          @mouseleave="clearVolumeHover"
           :style="volumeStyle"
         />
         <i class="fas fa-volume-up"></i>
@@ -162,6 +166,8 @@ const currentTime = ref(0)
 const duration = ref(0)
 const audioRef = ref(null)
 const volume = ref(80)
+const progressHoverPercent = ref(null)
+const volumeHoverPercent = ref(null)
 
 const isDesktop = computed(() => breakpoint.value === 'desktop')
 const isTablet = computed(() => breakpoint.value === 'tablet')
@@ -308,6 +314,42 @@ function onProgressChange(e) {
   currentTime.value = nextTime
 }
 
+function clampPercent(value) {
+  return Math.min(100, Math.max(0, Number.isFinite(value) ? value : 0))
+}
+
+function getRangeHoverPercent(event, maxValue) {
+  const input = event.currentTarget
+  const max = Number(maxValue || 0)
+  if (!input || !max || max <= 0) {
+    return null
+  }
+
+  const rect = input.getBoundingClientRect()
+  if (!rect.width) {
+    return null
+  }
+
+  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+  return clampPercent(ratio * 100)
+}
+
+function onProgressHover(event) {
+  progressHoverPercent.value = getRangeHoverPercent(event, duration.value)
+}
+
+function clearProgressHover() {
+  progressHoverPercent.value = null
+}
+
+function onVolumeHover(event) {
+  volumeHoverPercent.value = getRangeHoverPercent(event, 100)
+}
+
+function clearVolumeHover() {
+  volumeHoverPercent.value = null
+}
+
 function onTimeUpdate() {
   if (!audioRef.value) return
   currentTime.value = audioRef.value.currentTime
@@ -333,16 +375,48 @@ const progressPercent = computed(() => {
 })
 
 const progressStyle = computed(() => {
+  const filled = progressPercent.value
+  const hovered = progressHoverPercent.value
+
+  if (hovered === null) {
+    return {
+      background: `linear-gradient(90deg, var(--violet-primary) ${filled}%, var(--tertiary-bg) ${filled}%)`
+    }
+  }
+
+  if (hovered >= filled) {
+    return {
+      background: `linear-gradient(90deg, var(--violet-primary) ${filled}%, var(--secondary-text) ${filled}%, var(--secondary-text) ${hovered}%, var(--tertiary-bg) ${hovered}%)`
+    }
+  }
+
   return {
-    background: `linear-gradient(90deg, var(--violet-primary) ${progressPercent.value}%, var(--tertiary-bg) ${progressPercent.value}%)`
+    background: `linear-gradient(90deg, var(--violet-primary) ${hovered}%, var(--secondary-text) ${hovered}%, var(--secondary-text) ${filled}%, var(--tertiary-bg) ${filled}%)`
   }
 })
 
 const volumePercent = computed(() => Math.min(100, Math.max(0, Number(volume.value || 0))))
 
-const volumeStyle = computed(() => ({
-  background: `linear-gradient(90deg, var(--violet-primary) ${volumePercent.value}%, var(--tertiary-bg) ${volumePercent.value}%)`
-}))
+const volumeStyle = computed(() => {
+  const filled = volumePercent.value
+  const hovered = volumeHoverPercent.value
+
+  if (hovered === null) {
+    return {
+      background: `linear-gradient(90deg, var(--violet-primary) ${filled}%, var(--tertiary-bg) ${filled}%)`
+    }
+  }
+
+  if (hovered >= filled) {
+    return {
+      background: `linear-gradient(90deg, var(--violet-primary) ${filled}%, var(--secondary-text) ${filled}%, var(--secondary-text) ${hovered}%, var(--tertiary-bg) ${hovered}%)`
+    }
+  }
+
+  return {
+    background: `linear-gradient(90deg, var(--violet-primary) ${hovered}%, var(--secondary-text) ${hovered}%, var(--secondary-text) ${filled}%, var(--tertiary-bg) ${filled}%)`
+  }
+})
 
 function formatTime(seconds) {
   const floored = Math.floor(seconds || 0)
