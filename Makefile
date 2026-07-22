@@ -1,4 +1,4 @@
-.PHONY: help venv install setup run-api mariadb ffmpeg clean
+.PHONY: help venv install setup run-api visualizers mariadb ffmpeg clean
 
 help:
 	@echo "Commandes disponibles:"
@@ -7,6 +7,7 @@ help:
 	@echo "  make ffmpeg       - Installer ffmpeg (nécessite sudo)"
 	@echo "  make setup        - Créer venv, installer requirements et ffmpeg"
 	@echo "  make run-api      - Lancer l'API FastAPI"
+	@echo "  make visualizers  - Générer visualizer_data pour les tracks en base"
 	@echo "  make mariadb      - Installer MariaDB (nécessite sudo)"
 	@echo "  make clean        - Supprimer venv et fichiers temporaires"
 
@@ -25,6 +26,9 @@ setup: venv install ffmpeg
 
 run-api:
 	. venv/bin/activate && python3 -m uvicorn src.server.api.app:app --reload
+
+visualizers:
+	. venv/bin/activate && python3 src/server/generate_visualizers.py
 
 mariadb:
 	sudo python3 install_mariadb.py

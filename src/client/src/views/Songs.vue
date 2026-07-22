@@ -11,9 +11,59 @@
         </div>
 
         <div class="visualizer-right">
-          <div class="visualizer-label">
-            <span v-if="activeVisualizerSong" class="visualizer-song">{{ activeVisualizerSong.title }}</span>
-            <span v-if="activeVisualizerSong" class="visualizer-artist">{{ activeVisualizerSong.artist }}</span>
+          <div class="visualizer-header">
+            <div class="visualizer-label">
+              <span v-if="activeVisualizerSong" class="visualizer-song">{{ activeVisualizerSong.title }}</span>
+              <span v-if="activeVisualizerSong" class="visualizer-artist">{{ activeVisualizerSong.artist }}</span>
+            </div>
+
+            <div class="visualizer-actions">
+              <button
+                class="visualizer-actions-button"
+                v-if="activeVisualizerSong"
+                @click="$emit('like-song', activeVisualizerSong)"
+                aria-label="Aimer"
+              >
+                <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                <span class="visualizer-tooltip" aria-hidden="true">Aimer</span>
+              </button>
+              <button
+                class="visualizer-actions-button"
+                v-if="activeVisualizerSong"
+                @click="$emit('add-to-playlist', activeVisualizerSong)"
+                aria-label="Ajouter à la playlist"
+              >
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                <span class="visualizer-tooltip" aria-hidden="true">Ajouter à une playlist</span>
+              </button>
+              <button
+                class="visualizer-actions-button"
+                v-if="activeVisualizerSong"
+                @click="$emit('download-song', activeVisualizerSong)"
+                aria-label="Télécharger"
+              >
+                <i class="fa-solid fa-download" aria-hidden="true"></i>
+                <span class="visualizer-tooltip" aria-hidden="true">Télécharger</span>
+              </button>
+              <button
+                class="visualizer-actions-button"
+                v-if="activeVisualizerSong"
+                @click="$emit('share-song', activeVisualizerSong)"
+                aria-label="Partager"
+              >
+                <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+                <span class="visualizer-tooltip" aria-hidden="true">Partager</span>
+              </button>
+              <button
+                class="visualizer-actions-button"
+                v-if="activeVisualizerSong"
+                @click="$emit('more-options', activeVisualizerSong)"
+                aria-label="Plus d'options"
+              >
+                <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
+                <span class="visualizer-tooltip" aria-hidden="true">Plus d'options</span>
+              </button>
+            </div>
           </div>
 
           <div ref="visualizerContainer" class="visualizer-shell">
@@ -118,7 +168,7 @@ function getGradientFromPalette(palette) {
     return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 75%)`
   }
 
-  return `linear-gradient(135deg, ${colors[3]} 0%, ${colors[0]} 100%)`
+  return `linear-gradient(135deg, ${colors[1]} 0%, ${colors[1]} 100%)`
 }
 
 async function refreshVisualizerBackground(song) {
@@ -191,23 +241,17 @@ function getTargetBarCount() {
   return Math.max(40, Math.min(260, Math.floor(visualizerWidth.value / 3.4)))
 }
 
-function boostLowBars(values) {
+function normalizeBarsToPeak(values) {
   if (!Array.isArray(values) || !values.length) {
     return []
   }
 
-  const sortedValues = [...values].sort((left, right) => left - right)
-  const middleIndex = Math.floor(sortedValues.length / 2)
-  const reference = sortedValues.length % 2
-    ? sortedValues[middleIndex]
-    : (sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2
-
-  const boost = reference < 0.5 ? 0.5 - reference : 0
-  if (!boost) {
-    return values
+  const peak = values.reduce((maxValue, value) => Math.max(maxValue, clamp(Number(value) || 0)), 0)
+  if (peak <= 0) {
+    return values.map(() => 0)
   }
 
-  return values.map(value => clamp(value + boost))
+  return values.map(value => clamp((Number(value) || 0) / peak))
 }
 
 function updateVisualizerWidth() {
@@ -290,7 +334,7 @@ function drawVisualizer() {
   const maxHeight = height - 8
   const listenRatio = progress.value
 
-  const unplayedColor = 'rgb(228, 228, 232)'
+  const unplayedColor = 'rgb(255, 255, 255)'
   const playedColorStart = 'rgb(228, 228, 232)'
   const playedColorEnd = 'var(--violet-primary)'
 
@@ -352,7 +396,7 @@ const visualizerBars = computed(() => {
     : fallbackBars
 
   const interpolatedBars = interpolateBars(sourceBars.map(value => clamp(Number(value) || 0)), getTargetBarCount())
-  return boostLowBars(interpolatedBars)
+  return normalizeBarsToPeak(interpolatedBars)
 })
 
 function setSort(sortField) {
@@ -474,6 +518,7 @@ onUnmounted(() => {
   border-radius: 0.5rem;
   overflow: hidden;
   flex-shrink: 0;
+  position: relative;
 }
   .visualizer-thumbnail img {
     width: 100%;
@@ -490,7 +535,76 @@ onUnmounted(() => {
   flex: 1;
 }
 
+.visualizer-header {
+  display: flex;
+  gap: 1rem;
+}
+
+.visualizer-actions {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.05rem;
+  font-size: 1.25rem;
+  color: var(--secondary-text);
+}
+
+.visualizer-actions-button {
+  position: relative;
+  padding: 0.2rem 0.4rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+.visualizer-actions-button:hover {
+  color: var(--primary-text);
+  background: none;
+}
+
+.visualizer-tooltip {
+  --tooltip-x: -50%;
+  position: absolute;
+  top: calc(100% + 1rem);
+  left: 50%;
+  transform: translateX(var(--tooltip-x)) translateY(-0.2rem);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 6;
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.4rem;
+  background: rgba(120, 120, 120, 0.95);
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: min(12rem, calc(100vw - 2rem));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.visualizer-actions-button:first-child .visualizer-tooltip {
+  --tooltip-x: 0%;
+  left: 0;
+}
+
+.visualizer-actions-button:last-child .visualizer-tooltip {
+  --tooltip-x: 0%;
+  left: auto;
+  right: 0;
+}
+
+.visualizer-actions-button:hover .visualizer-tooltip,
+.visualizer-actions-button:focus-visible .visualizer-tooltip {
+  opacity: 1;
+  transform: translateX(var(--tooltip-x)) translateY(0);
+}
+
 .visualizer-label {
+  flex: 1;
   display: flex;
   flex-direction: column;
   color: var(--primary-text);
