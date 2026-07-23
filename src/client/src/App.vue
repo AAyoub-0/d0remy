@@ -55,6 +55,12 @@
       <main class="main-content">
         <RouterView />
       </main>
+
+      <div class="right-container">
+        <div class="right-content">
+          <RouterView name="right" />
+        </div>
+      </div>
     </div>
 
     <!-- MUSIC PLAYER -->
@@ -84,13 +90,13 @@
           <button class="control-btn" title="Shuffle">
             <i class="fas fa-random"></i>
           </button>
-          <button class="control-btn" title="Previous">
+          <button class="control-btn" @click="playPrevious" title="Previous">
             <i class="fas fa-step-backward"></i>
           </button>
           <button class="control-btn play-btn" @click="togglePlay" title="Play/Pause">
             <i :class="isPlaying ? 'fas fa-pause' : 'fas fa-play'"></i>
           </button>
-          <button class="control-btn" title="Next">
+          <button class="control-btn" @click="playNext" title="Next">
             <i class="fas fa-step-forward"></i>
           </button>
           <button class="control-btn" title="Repeat">
@@ -162,6 +168,8 @@ const searchOpen = ref(false)
 const searchInput = ref(null)
 const isPlaying = ref(false)
 const currentTrack = ref(null)
+const playbackQueue = ref([])
+const playbackIndex = ref(-1)
 const currentTime = ref(0)
 const duration = ref(0)
 const audioRef = ref(null)
@@ -189,9 +197,75 @@ function getBreakpoint(width) {
   return 'mobile'
 }
 
-function setCurrentTrack(track) {
+function updatePlaybackContext(track, options = {}) {
+  const queue = Array.isArray(options.queue) ? options.queue : []
+  if (queue.length) {
+    playbackQueue.value = queue
+    const requestedIndex = Number(options.index)
+    if (Number.isInteger(requestedIndex) && requestedIndex >= 0 && requestedIndex < queue.length) {
+      playbackIndex.value = requestedIndex
+    } else {
+      playbackIndex.value = queue.findIndex(item => item?.video_id === track?.video_id)
+    }
+    return
+  }
+
+  if (track?.video_id) {
+    const existingIndex = playbackQueue.value.findIndex(item => item?.video_id === track.video_id)
+    if (existingIndex >= 0) {
+      playbackIndex.value = existingIndex
+      return
+    }
+  }
+
+  playbackQueue.value = track ? [track] : []
+  playbackIndex.value = track ? 0 : -1
+}
+
+function setCurrentTrack(track, options = {}) {
   currentTrack.value = track
+  updatePlaybackContext(track, options)
   isPlaying.value = true
+}
+
+async function playTrackAt(index) {
+  if (!Array.isArray(playbackQueue.value) || !playbackQueue.value.length) return
+  if (index < 0 || index >= playbackQueue.value.length) return
+
+  const nextTrack = playbackQueue.value[index]
+  if (!nextTrack) return
+
+  playbackIndex.value = index
+  currentTrack.value = nextTrack
+  isPlaying.value = false
+
+  // Ensure playback starts immediately on explicit next/previous actions.
+  await nextTick()
+  if (!audioRef.value) return
+
+  audioRef.value.load()
+  try {
+    await audioRef.value.play()
+    isPlaying.value = true
+  } catch {
+    isPlaying.value = false
+  }
+}
+
+function playNext() {
+  if (!playbackQueue.value.length) return
+  const nextIndex = playbackIndex.value + 1
+  if (nextIndex >= playbackQueue.value.length)
+    nextIndex = 0 // Loop back to the first track if at the end
+  playTrackAt(nextIndex)
+}
+
+function playPrevious() {
+  if (!playbackQueue.value.length) return
+  const previousIndex = playbackIndex.value - 1
+  if (previousIndex < 0)
+    previousIndex = playbackQueue.value.length - 1 // Loop back to the last track if at the beginning
+  playTrackAt(previousIndex)
 }
 
 function seekTo(time) {
@@ -208,6 +282,9 @@ provide('currentTrack', currentTrack)
 provide('currentTime', currentTime)
 provide('currentDuration', duration)
 provide('setCurrentTrack', setCurrentTrack)
+provide('isPlaying', isPlaying)
+provide('togglePlay', togglePlay)
+provide('setPlaybackState', setPlaybackState)
 provide('seekTo', seekTo)
 
 watch(currentTrack, async () => {
@@ -307,6 +384,11 @@ function togglePlay() {
   isPlaying.value = !isPlaying.value
 }
 
+function setPlaybackState(shouldPlay) {
+  if (!currentTrack.value) return
+  isPlaying.value = Boolean(shouldPlay)
+}
+
 function onProgressChange(e) {
   if (!audioRef.value) return
   const nextTime = Number(e.target.value)
@@ -361,6 +443,11 @@ function onLoadedMetadata() {
 }
 
 function onEnded() {
+  const nextIndex = playbackIndex.value + 1
+  if (nextIndex >= 0 && nextIndex < playbackQueue.value.length) {
+    playTrackAt(nextIndex)
+    return
+  }
   isPlaying.value = false
 }
 

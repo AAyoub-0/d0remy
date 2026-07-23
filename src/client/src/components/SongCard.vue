@@ -2,13 +2,14 @@
   <div class="song-card">
     <img :src="song.thumbnail" alt="Thumbnail" class="thumbnail" />
     <div class="song-info">
-      <a href="#" class="song-title">{{ song.title }}</a>
+      <a href="#" class="song-title" :class="{ 'is-current-track': isCurrentTrack }">{{ song.title }}</a>
       <a href="#" class="song-artist">{{ song.artist }}</a>
     </div>
   </div>
 </template>
 
 <script setup> 
+import { computed, inject } from 'vue'
 import '../styles/root.css'
 
 const props = defineProps({
@@ -17,6 +18,24 @@ const props = defineProps({
     required: true,
   },
 })
+
+const currentTrack = inject('currentTrack', null)
+
+function isSameSong(left, right) {
+  if (!left || !right) return false
+
+  if (left.video_id && right.video_id) {
+    return left.video_id === right.video_id
+  }
+
+  if (left.url && right.url) {
+    return left.url === right.url
+  }
+
+  return left.title === right.title && left.artist === right.artist
+}
+
+const isCurrentTrack = computed(() => isSameSong(props.song, currentTrack?.value))
 </script>
 
 <style scoped>
@@ -60,6 +79,10 @@ const props = defineProps({
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.song-info .song-title.is-current-track {
+  color: var(--violet-primary);
 }
 
 .song-info .song-artist {

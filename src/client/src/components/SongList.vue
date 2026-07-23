@@ -2,12 +2,26 @@
   <section>
     <div v-if="songs.length">
       <ul>
-        <li v-for="song in songs" :key="song.video_id" @click="playSong(song)">
+        <li v-for="(song, index) in songs" :key="song.video_id" @click="playSong(song)">
           <div class="song-item">
             <div class="song-item-left">
-              <i class="fa-solid fa-play song-card-play-icon"></i>
-              <p class="song-nb">
-                {{ songs.indexOf(song) + 1 }}
+              <i
+                class="song-card-play-icon"
+                :class="getHoverIconClass(song)"
+                @click.stop="onIndexIconClick(song)"
+              ></i>
+              <div
+                v-if="isCurrentTrack(song)"
+                class="song-current-cube"
+                aria-hidden="true"
+              >
+                <div class="cube-cell cube-cell-top-left" :style="{ opacity: getCubeOpacity(song, 2) }"></div>
+                <div class="cube-cell cube-cell-top-right" :style="{ opacity: getCubeOpacity(song, 3) }"></div>
+                <div class="cube-cell cube-cell-bottom-left" :style="{ opacity: getCubeOpacity(song, 0) }"></div>
+                <div class="cube-cell cube-cell-bottom-right" :style="{ opacity: getCubeOpacity(song, 1) }"></div>
+              </div>
+              <p v-else class="song-nb">
+                {{ index + 1 }}
               </p>
             </div>
             <SongCard class="song-item-center" :song="song" />
@@ -35,9 +49,88 @@ const props = defineProps({
 })
 
 const setCurrentTrack = inject('setCurrentTrack', () => {})
+const currentTrack = inject('currentTrack', null)
+const currentTimeRef = inject('currentTime', null)
+const currentDurationRef = inject('currentDuration', null)
+const isPlaying = inject('isPlaying', null)
+const setPlaybackState = inject('setPlaybackState', null)
+const togglePlay = inject('togglePlay', () => {})
+
+function isSameSong(left, right) {
+  if (!left || !right) return false
+
+  if (left.video_id && right.video_id) {
+    return left.video_id === right.video_id
+  }
+
+  if (left.url && right.url) {
+    return left.url === right.url
+  }
+
+  return left.title === right.title && left.artist === right.artist
+}
+
+function isCurrentTrack(song) {
+  return isSameSong(song, currentTrack?.value)
+}
+
+function clamp(value, min = 0, max = 1) {
+  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : 0))
+}
+
+function getCurrentTrackProgress(song) {
+  if (!isCurrentTrack(song)) return 0
+
+  const duration = Number(currentDurationRef?.value || song?.duration || 0)
+  const currentTime = Number(currentTimeRef?.value || 0)
+  if (!duration || duration <= 0) return 0
+
+  return clamp(currentTime / duration)
+}
+
+function getSteppedOpacity(localProgress) {
+  if (localProgress <= 0) return 0
+  if (localProgress < (1 / 3)) return 0.3
+  if (localProgress < (2 / 3)) return 0.7
+  return 1
+}
+
+function getCubeOpacity(song, orderIndex) {
+  const progress = getCurrentTrackProgress(song)
+  const localProgress = clamp((progress * 4) - orderIndex)
+  return getSteppedOpacity(localProgress)
+}
+
+function getHoverIconClass(song) {
+  if (!isCurrentTrack(song)) return 'fa-solid fa-play'
+  return isPlaying?.value ? 'fa-solid fa-pause' : 'fa-solid fa-play'
+}
+
+function onIndexIconClick(song) {
+  if (isCurrentTrack(song)) {
+    if (isPlaying?.value) {
+      if (typeof setPlaybackState === 'function') {
+        setPlaybackState(false)
+      } else {
+        togglePlay()
+      }
+    } else {
+      if (typeof setPlaybackState === 'function') {
+        setPlaybackState(true)
+      } else {
+        togglePlay()
+      }
+    }
+    return
+  }
+
+  playSong(song)
+}
 
 function playSong(song) {
-  setCurrentTrack(song)
+  const queue = Array.isArray(props.songs) ? props.songs : []
+  const index = queue.findIndex(item => item?.video_id === song?.video_id)
+  setCurrentTrack(song, { queue, index })
 }
 
 function formatDuration(seconds) {
@@ -103,8 +196,11 @@ li:hover {
   }
 
 .song-item-left {
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 28px;
   padding-inline: 10px;
 }
 
@@ -121,10 +217,33 @@ li:hover {
   font-size: 0.875rem;
   color: var(--primary-text);
   position: absolute;
-  transform: all 0.2s ease;
+  z-index: 2;
+  transition: opacity 0.2s ease;
+}
+
+.song-current-cube {
+  width: 12px;
+  height: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+
+.song-current-cube .cube-cell {
+  width: 100%;
+  height: 100%;
+  background-color: var(--violet-primary);
+  transition: opacity 0.2s ease;
+  opacity: 0;
 }
 
 .song-item:hover .song-nb {
+  opacity: 0;
+}
+
+.song-item:hover .song-current-cube {
   opacity: 0;
 }
 

@@ -246,12 +246,27 @@ function normalizeBarsToPeak(values) {
     return []
   }
 
-  const peak = values.reduce((maxValue, value) => Math.max(maxValue, clamp(Number(value) || 0)), 0)
+  const normalizedSource = values.map(value => clamp(Number(value) || 0))
+  const peak = normalizedSource.reduce((maxValue, value) => Math.max(maxValue, value), 0)
   if (peak <= 0) {
-    return values.map(() => 0)
+    return normalizedSource.map(() => 0)
   }
 
-  return values.map(value => clamp((Number(value) || 0) / peak))
+  const normalized = normalizedSource.map(value => clamp(value / peak))
+
+  // Adaptive gamma keeps the original waveform shape while scaling it to use
+  // more canvas height when the track energy is globally low.
+  const sorted = [...normalized].sort((a, b) => a - b)
+  const percentile80 = sorted[Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * 0.8))] || 0
+  const targetPercentile80 = 0.74
+
+  let gamma = 1
+  if (percentile80 > 0 && percentile80 < 1) {
+    gamma = Math.log(targetPercentile80) / Math.log(percentile80)
+  }
+  gamma = clamp(gamma, 0.75, 1.35)
+
+  return normalized.map(value => clamp(Math.pow(value, gamma)))
 }
 
 function updateVisualizerWidth() {
@@ -343,7 +358,7 @@ function drawVisualizer() {
 
   bars.forEach((bar, index) => {
     const normalized = clamp(Number(bar) || 0)
-    const barHeight = Math.max(2, Math.round(normalized * maxHeight))
+    const barHeight = Math.max(2, normalized * maxHeight)
     const x = index * (barWidth + gap)
     const y = height - barHeight
 
@@ -537,7 +552,7 @@ onUnmounted(() => {
 
 .visualizer-header {
   display: flex;
-  gap: 1rem;
+  gap: 1.7rem;
 }
 
 .visualizer-actions {
@@ -611,6 +626,7 @@ onUnmounted(() => {
 }
 
 .visualizer-song {
+  text-align: justify;
   width: fit-content;
   padding: 0.2rem 0.5rem;
   background-color: #000;

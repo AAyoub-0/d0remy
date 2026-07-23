@@ -37,6 +37,24 @@ html, body, #app {
   flex: 1;
   overflow: hidden;
   margin-inline: 0.55rem;
+  gap: 0.55rem;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--primary-bg);
+}
+
+.right-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+  background: var(--secondary-bg);
+  border-left: 1px solid var(--tertiary-bg);
+  overflow-y: auto;
+  transition: all 0.2s ease;
 }
 
 .sidebar {
@@ -111,19 +129,6 @@ html, body, #app {
 
 .sidebar-nav a:hover {
   background: rgba(255, 255, 255, 0.08);
-}
-
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  background: var(--primary-bg);
-  /* padding: 2rem; */
-}
-
-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
 }
 
 /* ========== COMPOSANTS ========== */
