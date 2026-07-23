@@ -225,6 +225,8 @@ li:hover {
   width: 12px;
   height: 12px;
   display: grid;
+  position: absolute;
+  z-index: 2;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   border: 1px solid rgba(255, 255, 255, 0.45);

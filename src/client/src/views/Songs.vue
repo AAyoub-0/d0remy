@@ -511,7 +511,9 @@ onUnmounted(() => {
 }
 
 .visualizer-card {
+  padding: 1.2rem 1.3rem;
   display: flex;
+  gap: 1rem;
   z-index: 20;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
@@ -519,7 +521,7 @@ onUnmounted(() => {
 }
 
 .visualizer-left {
-  padding: 1.2rem 1.3rem;
+  /* padding: 1.2rem 1.3rem; */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -542,7 +544,7 @@ onUnmounted(() => {
   }
 
 .visualizer-right {
-  padding: 1.2rem 1.3rem;
+  /* padding: 1.2rem 1.3rem; */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
