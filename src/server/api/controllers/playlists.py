@@ -81,18 +81,18 @@ def add_song_to_playlist_endpoint(playlist_id: str, playlist_song: PlaylistSongC
     playlist = get_playlist(db, playlist_id)
     if playlist is None:
         raise HTTPException(status_code=404, detail="Playlist introuvable")
-    song = get_song(db, playlist_song.video_id)
+    song = get_song(db, playlist_song.song_id)
     if song is None:
         raise HTTPException(status_code=404, detail="Chanson introuvable")
-    return add_song_to_playlist(db, playlist_id, playlist_song.video_id, playlist_song.position)
+    return add_song_to_playlist(db, playlist_id, playlist_song.song_id, playlist_song.position)
 
 
-@router.delete("/{playlist_id}/songs/{video_id}", status_code=204)
-def delete_song_from_playlist(playlist_id: str, video_id: str, db: Session = Depends(get_db)):
+@router.delete("/{playlist_id}/songs/{song_id}", status_code=204)
+def delete_song_from_playlist(playlist_id: str, song_id: str, db: Session = Depends(get_db)):
     playlist = get_playlist(db, playlist_id)
     if playlist is None:
         raise HTTPException(status_code=404, detail="Playlist introuvable")
-    playlist_song = db.query(PlaylistSong).filter_by(playlist_id=playlist_id, video_id=video_id).one_or_none()
+    playlist_song = db.query(PlaylistSong).filter_by(playlist_id=playlist_id, song_id=song_id).one_or_none()
     if playlist_song is None:
         raise HTTPException(status_code=404, detail="Chanson de playlist introuvable")
     db.delete(playlist_song)

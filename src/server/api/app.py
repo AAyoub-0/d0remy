@@ -3,18 +3,24 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
 
+from .controllers.albums import router as albums_router
+from .controllers.artists import router as artists_router
+from .controllers.classifications import router as classifications_router
 from .controllers.playlists import router as playlists_router
 from .controllers.songs import router as songs_router
 
 app = FastAPI(title="YouTube Music Downloader API")
 app.include_router(songs_router)
+app.include_router(artists_router)
+app.include_router(albums_router)
+app.include_router(classifications_router)
 app.include_router(playlists_router)
 
 DOWNLOADS_DIR = Path(__file__).resolve().parents[3] / "downloads"
 
-@app.get("/media/{video_id}", include_in_schema=False)
-def media(video_id: str):
-    video_folder = DOWNLOADS_DIR / video_id
+@app.get("/media/{song_id}", include_in_schema=False)
+def media(song_id: str):
+    video_folder = DOWNLOADS_DIR / song_id
     if not video_folder.exists() or not video_folder.is_dir():
         raise HTTPException(status_code=404, detail="Audio introuvable")
 

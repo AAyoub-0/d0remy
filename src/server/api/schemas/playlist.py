@@ -37,13 +37,13 @@ class PlaylistRead(PlaylistBase):
 
 
 class PlaylistSongCreate(BaseModel):
-    video_id: str
+    song_id: str
     position: int
 
 
 class PlaylistSongRead(BaseModel):
     playlist_id: str
-    video_id: str
+    song_id: str
     position: int
 
     class Config:

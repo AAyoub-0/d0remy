@@ -13,6 +13,26 @@ class SongBase(BaseModel):
     description: Optional[str] = None
     url: Optional[str] = None
     thumbnail: Optional[str] = None
+    isrc: Optional[str] = None
+    upc: Optional[str] = None
+    musicbrainz_recording_id: Optional[str] = None
+    musicbrainz_release_id: Optional[str] = None
+    musicbrainz_artist_ids: Optional[list[str]] = None
+    spotify_id: Optional[str] = None
+    deezer_id: Optional[str] = None
+    apple_music_id: Optional[str] = None
+    youtube_video_id: Optional[str] = None
+    spotify: Optional[str] = None
+    deezer: Optional[str] = None
+    apple_music: Optional[str] = None
+    youtube: Optional[str] = None
+    musicbrainz: Optional[str] = None
+    lastfm: Optional[str] = None
+    genius: Optional[str] = None
+    copyright: Optional[str] = None
+    phonographic: Optional[str] = None
+    publisher: Optional[str] = None
+    rating: Optional[float] = None
     size_bytes: Optional[int] = None
     size_mb: Optional[float] = None
     downloaded: Optional[bool] = False
@@ -20,7 +40,7 @@ class SongBase(BaseModel):
 
 
 class SongCreate(SongBase):
-    video_id: str
+    song_id: str
 
 
 class SongUpdate(BaseModel):
@@ -32,6 +52,26 @@ class SongUpdate(BaseModel):
     description: Optional[str] = None
     url: Optional[str] = None
     thumbnail: Optional[str] = None
+    isrc: Optional[str] = None
+    upc: Optional[str] = None
+    musicbrainz_recording_id: Optional[str] = None
+    musicbrainz_release_id: Optional[str] = None
+    musicbrainz_artist_ids: Optional[list[str]] = None
+    spotify_id: Optional[str] = None
+    deezer_id: Optional[str] = None
+    apple_music_id: Optional[str] = None
+    youtube_video_id: Optional[str] = None
+    spotify: Optional[str] = None
+    deezer: Optional[str] = None
+    apple_music: Optional[str] = None
+    youtube: Optional[str] = None
+    musicbrainz: Optional[str] = None
+    lastfm: Optional[str] = None
+    genius: Optional[str] = None
+    copyright: Optional[str] = None
+    phonographic: Optional[str] = None
+    publisher: Optional[str] = None
+    rating: Optional[float] = None
     size_bytes: Optional[int] = None
     size_mb: Optional[float] = None
     downloaded: Optional[bool] = None
@@ -39,7 +79,7 @@ class SongUpdate(BaseModel):
 
 
 class SongRead(SongBase):
-    video_id: str
+    song_id: str
     metadata_created_at: Optional[datetime] = None
 
     class Config:
