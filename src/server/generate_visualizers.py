@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Generate visualizer_data for songs stored in the database.
 
-This script scans songs from DB, locates each MP3 file in downloads/<video_id>/,
+This script scans songs from DB, locates each MP3 file in downloads/<song_id>/,
 generates visualizer_data from audio, and stores it in songs.visualizer_data.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 import sys
 from typing import Any
@@ -31,8 +30,8 @@ def _has_visualizer_data(value: Any) -> bool:
     return isinstance(bars, list) and len(bars) > 0
 
 
-def _find_mp3(downloads_dir: Path, video_id: str) -> Path | None:
-    song_dir = downloads_dir / video_id
+def _find_mp3(downloads_dir: Path, song_id: str) -> Path | None:
+    song_dir = downloads_dir / song_id
     if not song_dir.exists() or not song_dir.is_dir():
         return None
 
@@ -40,22 +39,6 @@ def _find_mp3(downloads_dir: Path, video_id: str) -> Path | None:
     if not mp3_files:
         return None
     return mp3_files[0]
-
-
-def _update_metadata_file(song_dir: Path, video_id: str, visualizer_data: dict[str, Any]) -> None:
-    metadata_path = song_dir / f"{video_id}_metadata.json"
-    if not metadata_path.exists() or not metadata_path.is_file():
-        return
-
-    try:
-        with metadata_path.open("r", encoding="utf-8") as f:
-            metadata = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return
-
-    metadata["visualizer_data"] = visualizer_data
-    with metadata_path.open("w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2, ensure_ascii=False)
 
 
 def _process_song(
@@ -68,7 +51,7 @@ def _process_song(
     if not force and _has_visualizer_data(song.visualizer_data):
         return False, "skip: visualizer_data already set"
 
-    mp3_path = _find_mp3(downloads_dir, song.video_id)
+    mp3_path = _find_mp3(downloads_dir, song.song_id)
     if mp3_path is None:
         return False, "skip: no mp3 found"
 
@@ -76,8 +59,6 @@ def _process_song(
     song.visualizer_data = visualizer_data
     session.add(song)
     session.commit()
-
-    _update_metadata_file(mp3_path.parent, song.video_id, visualizer_data)
     return True, f"ok: {mp3_path.name}"
 
 
@@ -86,12 +67,12 @@ def main() -> int:
     parser.add_argument(
         "--downloads-dir",
         default="downloads",
-        help="Base directory that contains one folder per video_id (default: downloads)",
+        help="Base directory that contains one folder per song_id (default: downloads)",
     )
     parser.add_argument(
         "--video-id",
         default=None,
-        help="Only process one song by video_id",
+        help="Only process one song by song_id",
     )
     parser.add_argument(
         "--force",
@@ -129,13 +110,13 @@ def main() -> int:
     session = SessionLocal()
     try:
         query = session.query(Song)
-        if args.video_id:
-            query = query.filter(Song.video_id == args.video_id)
+        if args.song_id:
+            query = query.filter(Song.song_id == args.song_id)
 
         songs = query.all()
         if not songs:
-            if args.video_id:
-                print(f"No song found for video_id={args.video_id}")
+            if args.song_id:
+                print(f"No song found for song_id={args.song_id}")
             else:
                 print("No songs found in DB")
             return 0
@@ -153,11 +134,11 @@ def main() -> int:
                     updated += 1
                 else:
                     skipped += 1
-                print(f"[{song.video_id}] {message}")
+                print(f"[{song.song_id}] {message}")
             except Exception as exc:
                 session.rollback()
                 failed += 1
-                print(f"[{song.video_id}] fail: {exc}")
+                print(f"[{song.song_id}] fail: {exc}")
 
     finally:
         session.close()

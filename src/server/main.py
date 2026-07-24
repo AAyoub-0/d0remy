@@ -4,7 +4,7 @@
 Usage:
   python3 src/main.py <youtube_url>
   python3 src/main.py -c <youtube_url>
-  python3 src/main.py --download <video_id>
+  python3 src/main.py --download <song_id>
   python3 src/main.py -c <playlist_url>
   python3 src/main.py --download-playlist <playlist_id>
 
@@ -13,7 +13,6 @@ Il supporte également la préparation et le téléchargement différé de playl
 """
 
 import argparse
-import json
 import os
 import re
 import shutil
@@ -25,12 +24,15 @@ from urllib.parse import parse_qs, urlparse
 
 from src.server.database import get_engine_from_env, get_session
 from src.server.database.crud import (
+    get_playlist,
+    get_playlist_songs,
     create_or_update_song,
     is_song_downloaded,
     mark_song_downloaded,
     create_playlist,
     add_song_to_playlist,
 )
+from src.server.database.repositories.ytb_metadata_repository import create_or_update_ytb_metadata, get_ytb_metadata
 from src.server.visualizer import build_visualizer_data as build_audio_visualizer_data
 
 YOUTUBE_URL_RE = re.compile(
@@ -51,7 +53,7 @@ def ensure_download_folder(folder: str) -> None:
     os.makedirs(folder, exist_ok=True)
 
 
-def get_video_id(url: str) -> str:
+def get_song_id(url: str) -> str:
     match = YOUTUBE_URL_RE.match(url)
     if not match:
         raise ValueError("Impossible de récupérer l'ID vidéo depuis l'URL.")
@@ -81,6 +83,10 @@ def build_empty_visualizer_data() -> dict:
     }
 
 
+def persist_song_metadata(session, metadata: dict) -> None:
+    create_or_update_song(session, metadata)
+
+
 def update_visualizer_data_for_download(video_folder: str, metadata: dict, SessionLocal=None) -> None:
     mp3_files = sorted(Path(video_folder).glob("*.mp3"))
     if not mp3_files:
@@ -93,18 +99,15 @@ def update_visualizer_data_for_download(video_folder: str, metadata: dict, Sessi
         raise RuntimeError(f"Impossible de créer visualizer_data : {exc}") from exc
 
     metadata["visualizer_data"] = visualizer_data
-    metadata_file = os.path.join(video_folder, f"{metadata['video_id']}_metadata.json")
-    with open(metadata_file, "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2, ensure_ascii=False)
 
     if SessionLocal is not None:
         try:
             with get_session(SessionLocal) as session:
-                create_or_update_song(session, metadata)
+                persist_song_metadata(session, metadata)
         except Exception as exc:
-            print(f"Avertissement DB : impossible de mettre à jour visualizer_data en base : {exc}")
+            print(f"Avertissement DB : impossible de mettre à jour visualizer_data en base (songs) : {exc}")
 
-    print(f"Visualiseur sauvegardé pour: {metadata['video_id']}")
+    print(f"Visualiseur sauvegardé pour: {metadata['song_id']}")
 
 
 def estimate_audio_size(info: dict) -> int:
@@ -127,7 +130,7 @@ def estimate_audio_size(info: dict) -> int:
     return 0
 
 
-def save_metadata(info: dict, video_folder: str, downloaded: bool = False, SessionLocal=None) -> str:
+def save_metadata(info: dict, video_folder: str, downloaded: bool = False, SessionLocal=None) -> dict:
     os.makedirs(video_folder, exist_ok=True)
     size_bytes = estimate_audio_size(info)
     metadata = {
@@ -138,26 +141,24 @@ def save_metadata(info: dict, video_folder: str, downloaded: bool = False, Sessi
         "upload_date": info.get("upload_date"),
         "description": info.get("description", ""),
         "url": info.get("original_url") or info.get("webpage_url") or info.get("url"),
-        "video_id": info.get("id"),
+        "song_id": info.get("id"),
         "thumbnail": info.get("thumbnail"),
         "size_bytes": size_bytes,
         "size_mb": round(size_bytes / (1024 * 1024), 2) if size_bytes else None,
         "downloaded": downloaded,
         "visualizer_data": build_empty_visualizer_data(),
     }
-    metadata_file = os.path.join(video_folder, f"{metadata['video_id']}_metadata.json")
-    with open(metadata_file, "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2, ensure_ascii=False)
 
     if SessionLocal is not None:
         try:
             with get_session(SessionLocal) as session:
-                create_or_update_song(session, metadata)
+                persist_song_metadata(session, metadata)
+                create_or_update_ytb_metadata(session, metadata["song_id"], metadata)
         except Exception as exc:
-            print(f"Avertissement DB : impossible de créer/update le son en base : {exc}")
+            print(f"Avertissement DB : impossible de créer/update les métadonnées YTB en base : {exc}")
 
-    print(f"Métadonnées sauvegardées: {metadata_file}")
-    return metadata_file
+    print(f"Métadonnées sauvegardées en base pour: {metadata['song_id']}")
+    return metadata
 
 
 def mp3_exists(video_folder: str) -> bool:
@@ -210,24 +211,37 @@ def download_audio(url: str, video_folder: str) -> None:
         ydl.download([url])
 
 
-def download_by_id(video_id: str, destination: str, SessionLocal=None) -> None:
+def download_by_id(song_id: str, destination: str, SessionLocal=None) -> None:
     """Télécharge le MP3 d'une vidéo en utilisant son ID."""
-    video_folder = os.path.join(destination, video_id)
-    metadata_file = os.path.join(video_folder, f"{video_id}_metadata.json")
-
-    if not os.path.exists(metadata_file):
-        raise FileNotFoundError(f"Pas de métadonnées trouvées pour l'ID: {video_id}")
-
-    with open(metadata_file, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
+    video_folder = os.path.join(destination, song_id)
+    metadata = {
+        "song_id": song_id,
+        "title": song_id,
+        "visualizer_data": build_empty_visualizer_data(),
+    }
 
     db_checked = False
     if SessionLocal is not None:
         try:
             with get_session(SessionLocal) as session:
+                db_metadata = get_song(session, song_id)
+                if db_metadata is not None:
+                    metadata.update({
+                        "title": db_metadata.title or song_id,
+                        "artist": db_metadata.artist,
+                        "uploader": db_metadata.uploader,
+                        "duration": db_metadata.duration,
+                        "upload_date": db_metadata.upload_date,
+                        "description": db_metadata.description,
+                        "url": db_metadata.url,
+                        "thumbnail": db_metadata.thumbnail,
+                        "size_bytes": db_metadata.size_bytes,
+                        "size_mb": float(db_metadata.size_mb) if db_metadata.size_mb is not None else None,
+                    })
+                    persist_song_metadata(session, metadata)
                 db_checked = True
-                if is_song_downloaded(session, video_id):
-                    print(f"MP3 déjà marqué téléchargé en base pour {video_id}. Aucun téléchargement nécessaire.")
+                if is_song_downloaded(session, song_id):
+                    print(f"MP3 déjà marqué téléchargé en base pour {song_id}. Aucun téléchargement nécessaire.")
                     return
         except Exception as exc:
             print(f"Avertissement DB : impossible de vérifier le statut de téléchargement : {exc}")
@@ -237,13 +251,13 @@ def download_by_id(video_id: str, destination: str, SessionLocal=None) -> None:
         if SessionLocal is not None:
             try:
                 with get_session(SessionLocal) as session:
-                    mark_song_downloaded(session, video_id, True)
+                    mark_song_downloaded(session, song_id, True)
             except Exception as exc:
                 print(f"Avertissement DB : impossible de marquer le son téléchargé : {exc}")
         return
 
     print(f"Téléchargement de: {metadata['title']}")
-    download_audio(f"https://www.youtube.com/watch?v={video_id}", video_folder)
+    download_audio(f"https://www.youtube.com/watch?v={song_id}", video_folder)
     try:
         update_visualizer_data_for_download(video_folder, metadata, SessionLocal=SessionLocal)
     except Exception as exc:
@@ -251,7 +265,7 @@ def download_by_id(video_id: str, destination: str, SessionLocal=None) -> None:
     if SessionLocal is not None:
         try:
             with get_session(SessionLocal) as session:
-                mark_song_downloaded(session, video_id, True)
+                mark_song_downloaded(session, song_id, True)
         except Exception as exc:
             print(f"Avertissement DB : impossible de marquer le son téléchargé : {exc}")
     print(f"✓ Téléchargement terminé dans: {video_folder}")
@@ -261,18 +275,11 @@ def get_playlist_root(destination: str) -> str:
     return os.path.join(os.path.dirname(os.path.abspath(destination)), "playlists")
 
 
-def playlist_metadata_path(destination: str, playlist_id: str) -> str:
-    return os.path.join(get_playlist_root(destination), playlist_id, "playlist_metadata.json")
-
-
 def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
     info = extract_info(url, download=False)
     playlist_id = get_playlist_id(url)
     if not playlist_id:
         raise ValueError("Impossible de récupérer l'ID de playlist depuis l'URL.")
-
-    playlist_folder = os.path.join(get_playlist_root(destination), playlist_id)
-    os.makedirs(playlist_folder, exist_ok=True)
 
     playlist_info = {
         "playlist_id": playlist_id,
@@ -282,7 +289,7 @@ def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
         "webpage_url": info.get("webpage_url"),
         "description": info.get("description", ""),
         "entry_count": len(info.get("entries", [])),
-        "video_ids": [],
+        "song_ids": [],
         "videos": [],
         "total_size_mb": 0,
     }
@@ -291,17 +298,17 @@ def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
     for entry in info.get("entries", []):
         if not entry:
             continue
-        video_id = entry.get("id")
-        if not video_id:
+        song_id = entry.get("id")
+        if not song_id:
             continue
-        video_folder = os.path.join(destination, video_id)
+        video_folder = os.path.join(destination, song_id)
         save_metadata(entry, video_folder, downloaded=False, SessionLocal=SessionLocal)
 
         size_bytes = estimate_audio_size(entry)
         total_size_bytes += size_bytes
-        playlist_info["video_ids"].append(video_id)
+        playlist_info["song_ids"].append(song_id)
         playlist_info["videos"].append({
-            "video_id": video_id,
+            "song_id": song_id,
             "title": entry.get("title"),
             "duration": entry.get("duration"),
             "uploader": entry.get("uploader"),
@@ -312,10 +319,6 @@ def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
         })
 
     playlist_info["total_size_mb"] = round(total_size_bytes / (1024 * 1024), 2)
-
-    playlist_file = playlist_metadata_path(destination, playlist_id)
-    with open(playlist_file, "w", encoding="utf-8") as f:
-        json.dump(playlist_info, f, indent=2, ensure_ascii=False)
 
     # Persist playlist and playlist_songs in DB when SessionLocal provided
     if SessionLocal is not None:
@@ -340,7 +343,7 @@ def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
                     pass
 
                 # add songs to playlist with positions
-                for idx, vid in enumerate(playlist_info.get("video_ids", []), start=1):
+                for idx, vid in enumerate(playlist_info.get("song_ids", []), start=1):
                     try:
                         add_song_to_playlist(session, playlist_id, vid, idx)
                     except Exception:
@@ -348,8 +351,10 @@ def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
                         continue
         except Exception as exc:
             print(f"Avertissement DB : impossible de créer la playlist en base : {exc}")
+    else:
+        print("Avertissement DB : Session non disponible, la playlist ne sera pas persistée.")
 
-    print(f"✓ Préparation de la playlist terminée: {playlist_file}")
+    print(f"✓ Préparation de la playlist terminée: {playlist_id}")
     print(f"  ID playlist: {playlist_id}")
     print(f"  Titre: {playlist_info['title']}")
     print(f"  Taille totale estimée: {playlist_info['total_size_mb']} MB")
@@ -361,22 +366,27 @@ def prepare_playlist(url: str, destination: str, SessionLocal=None) -> str:
 
 
 def download_playlist(playlist_id: str, destination: str, SessionLocal=None) -> None:
-    playlist_file = playlist_metadata_path(destination, playlist_id)
-    if not os.path.exists(playlist_file):
-        raise FileNotFoundError(f"Pas de préparation de playlist trouvée pour l'ID: {playlist_id}")
+    if SessionLocal is None:
+        raise RuntimeError("Session DB introuvable: impossible de télécharger une playlist sans base de données.")
 
-    with open(playlist_file, "r", encoding="utf-8") as f:
-        playlist_info = json.load(f)
+    with get_session(SessionLocal) as session:
+        playlist = get_playlist(session, playlist_id)
+        if playlist is None:
+            raise FileNotFoundError(f"Pas de playlist trouvée en base pour l'ID: {playlist_id}")
+        playlist_songs = get_playlist_songs(session, playlist_id)
+
+    playlist_info = {
+        "title": playlist.title,
+        "playlist_id": playlist_id,
+    }
 
     print(f"Téléchargement de la playlist: {playlist_info.get('title')} ({playlist_id})")
-    for video in playlist_info.get("videos", []):
-        video_id = video.get("video_id")
-        if not video_id:
-            continue
+    for playlist_song in sorted(playlist_songs, key=lambda item: item.position):
+        song_id = playlist_song.song_id
         try:
-            download_by_id(video_id, destination, SessionLocal=SessionLocal)
+            download_by_id(song_id, destination, SessionLocal=SessionLocal)
         except Exception as exc:
-            print(f"Erreur lors du téléchargement de {video_id}: {exc}")
+            print(f"Erreur lors du téléchargement de {song_id}: {exc}")
 
     print(f"✓ Téléchargement final de la playlist terminé: {playlist_id}")
 
@@ -481,8 +491,8 @@ def main() -> int:
             print(f"Erreur lors de la préparation de la playlist: {exc}")
             return 1
 
-    video_id = get_video_id(url)
-    video_folder = os.path.join(args.dest, video_id)
+    song_id = get_song_id(url)
+    video_folder = os.path.join(args.dest, song_id)
 
     try:
         info = extract_info(url, download=False)
@@ -490,9 +500,7 @@ def main() -> int:
         print(f"Erreur lors de la récupération des métadonnées: {exc}")
         return 1
 
-    metadata_file = save_metadata(info, video_folder, downloaded=False, SessionLocal=session_local)
-    with open(metadata_file, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
+    metadata = save_metadata(info, video_folder, downloaded=False, SessionLocal=session_local)
 
     if args.prepare:
         print("Mode préparation activé : le MP3 ne sera pas téléchargé maintenant.")
@@ -503,7 +511,7 @@ def main() -> int:
         if session_local is not None:
             try:
                 with get_session(session_local) as session:
-                    mark_song_downloaded(session, video_id, True)
+                    mark_song_downloaded(session, song_id, True)
             except Exception as exc:
                 print(f"Avertissement DB : impossible de marquer le son téléchargé : {exc}")
         return 0
@@ -517,7 +525,7 @@ def main() -> int:
             print(f"Avertissement : impossible de générer visualizer_data : {exc}")
         if session_local is not None:
             with get_session(session_local) as session:
-                mark_song_downloaded(session, video_id, True)
+                mark_song_downloaded(session, song_id, True)
     except RuntimeError as exc:
         print(f"Erreur: {exc}")
         print("Tentative avec la commande `yt-dlp` si disponible...")
@@ -529,7 +537,7 @@ def main() -> int:
                 print(f"Avertissement : impossible de générer visualizer_data : {exc}")
             if session_local is not None:
                 with get_session(session_local) as session:
-                    mark_song_downloaded(session, video_id, True)
+                    mark_song_downloaded(session, song_id, True)
         except Exception as cli_exc:
             print(f"Échec du téléchargement: {cli_exc}")
             return 1

@@ -19,8 +19,8 @@ def list_playlists(session: Session, limit: int = 100) -> list[Playlist]:
     return session.query(Playlist).limit(limit).all()
 
 
-def add_song_to_playlist(session: Session, playlist_id: str, video_id: str, position: int) -> PlaylistSong:
-    playlist_song = PlaylistSong(playlist_id=playlist_id, video_id=video_id, position=position)
+def add_song_to_playlist(session: Session, playlist_id: str, song_id: str, position: int) -> PlaylistSong:
+    playlist_song = PlaylistSong(playlist_id=playlist_id, song_id=song_id, position=position)
     session.add(playlist_song)
     session.commit()
     session.refresh(playlist_song)

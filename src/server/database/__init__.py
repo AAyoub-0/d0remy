@@ -1,5 +1,5 @@
 from .database import build_database_url, create_engine_and_session, get_engine, get_session, get_engine_from_env
-from .entities.models import Base, Song, Playlist, PlaylistSong
+from .entities.models import Album, AlbumArtist, Artist, Base, Classification, Playlist, PlaylistSong, Song, YtbMetadata
 from .crud import (
     create_song,
     get_song,
@@ -20,6 +20,11 @@ __all__ = [
     "get_engine_from_env",
     "Base",
     "Song",
+    "Artist",
+    "Album",
+    "AlbumArtist",
+    "Classification",
+    "YtbMetadata",
     "Playlist",
     "PlaylistSong",
 ]
