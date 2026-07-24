@@ -24,8 +24,8 @@ const currentTrack = inject('currentTrack', null)
 function isSameSong(left, right) {
   if (!left || !right) return false
 
-  if (left.video_id && right.video_id) {
-    return left.video_id === right.video_id
+  if (left.song_id && right.song_id) {
+    return left.song_id === right.song_id
   }
 
   if (left.url && right.url) {

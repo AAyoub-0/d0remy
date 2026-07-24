@@ -186,7 +186,7 @@ const sidebarCollapsed = computed(() => (isDesktop.value || isTablet.value) && !
 const audioSrc = computed(() => {
   if (!currentTrack.value) return ''
   if (currentTrack.value.downloaded) {
-    return `/media/${currentTrack.value.video_id}`
+    return `/media/${currentTrack.value.song_id}`
   }
   return currentTrack.value.url || ''
 })
@@ -205,13 +205,13 @@ function updatePlaybackContext(track, options = {}) {
     if (Number.isInteger(requestedIndex) && requestedIndex >= 0 && requestedIndex < queue.length) {
       playbackIndex.value = requestedIndex
     } else {
-      playbackIndex.value = queue.findIndex(item => item?.video_id === track?.video_id)
+      playbackIndex.value = queue.findIndex(item => item?.song_id === track?.song_id)
     }
     return
   }
 
-  if (track?.video_id) {
-    const existingIndex = playbackQueue.value.findIndex(item => item?.video_id === track.video_id)
+  if (track?.song_id) {
+    const existingIndex = playbackQueue.value.findIndex(item => item?.song_id === track.song_id)
     if (existingIndex >= 0) {
       playbackIndex.value = existingIndex
       return

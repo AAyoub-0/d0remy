@@ -12,9 +12,9 @@
     <ul v-if="playlistSongs.length">
       <li
         v-for="song in playlistSongs"
-        :key="`${song.playlist_id}-${song.video_id}`"
+        :key="`${song.playlist_id}-${song.song_id}`"
       >
-        {{ song.video_id }} – position {{ song.position }}
+        {{ song.song_id }} – position {{ song.position }}
       </li>
     </ul>
   </section>

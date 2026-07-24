@@ -2,7 +2,7 @@
   <section>
     <div v-if="songs.length">
       <ul>
-        <li v-for="(song, index) in songs" :key="song.video_id" @click="playSong(song)">
+        <li v-for="(song, index) in songs" :key="song.song_id" @click="playSong(song)">
           <div class="song-item">
             <div class="song-item-left">
               <i
@@ -59,8 +59,8 @@ const togglePlay = inject('togglePlay', () => {})
 function isSameSong(left, right) {
   if (!left || !right) return false
 
-  if (left.video_id && right.video_id) {
-    return left.video_id === right.video_id
+  if (left.song_id && right.song_id) {
+    return left.song_id === right.song_id
   }
 
   if (left.url && right.url) {
@@ -129,7 +129,7 @@ function onIndexIconClick(song) {
 
 function playSong(song) {
   const queue = Array.isArray(props.songs) ? props.songs : []
-  const index = queue.findIndex(item => item?.video_id === song?.video_id)
+  const index = queue.findIndex(item => item?.song_id === song?.song_id)
   setCurrentTrack(song, { queue, index })
 }
 
